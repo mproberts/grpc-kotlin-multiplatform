@@ -1,0 +1,23 @@
+Codegen
+ ☐ Generator structure
+ ☐ Test runner
+ ☐ Data classes
+   ☐ Validation
+ ☐ Generate builders
+ ☐ Generate encoders
+ ☐ Generate decoders
+ ☐ Generate services
+   ☐ Server interface
+   ☐ Client interface
+   ☐ Server delegation
+   ☐ Client delegation
+Library
+  ☐ Encoder tools
+  ☐ Decoder tools
+  ☐ Generic transport
+  ☐ In-memory transport
+  ☐ Multicast transport
+  ☐ HTTP/1.1 transport
+Gradle Plugin
+  ☐ Protobuf generation
+    ☐ Specify filesets with distinct parameters

@@ -1,0 +1,32 @@
+syntax = "proto3";
+
+package dev.mpr.grpc.sample;
+
+option java_package = "dev.mpr.grpc.sample";
+
+message Empty {
+}
+
+message FullOfScalars {
+    int32 an_int32 = 1;
+    int64 an_int64 = 2;
+    uint32 a_uint32 = 3;
+    uint64 a_uint64 = 4;
+    bool a_bool = 5;
+    string a_string = 6;
+    bytes some_bytes = 7;
+}
+
+message Nested {
+    int32 outer_int = 1;
+    InnerMessage inner_message = 2;
+
+    message InnerMessage {
+        int32 inner_int = 1;
+        EvenMoreInner nested_inner_message = 2;
+
+        message EvenMoreInner {
+            int32 inner_inner_int = 1;
+        }
+    }
+}

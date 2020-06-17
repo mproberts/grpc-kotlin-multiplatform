@@ -1,0 +1,5 @@
+rootProject.name = 'grpc-kotlin-multiplatform'
+
+enableFeaturePreview("GRADLE_METADATA")
+
+include ':lib', ':app'
