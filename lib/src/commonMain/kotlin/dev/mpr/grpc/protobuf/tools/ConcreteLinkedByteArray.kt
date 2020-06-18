@@ -24,6 +24,8 @@ internal class ConcreteLinkedByteArray(private val bufferSize: Int = defaultBuff
         bufferCache.add(bytes)
     }
 
+    private val tempBytes = ByteArray(1)
+
     private val bufferCache = mutableListOf<ByteArray>()
     private val outputBuffers = mutableListOf(ByteArray(bufferSize))
 
@@ -36,10 +38,24 @@ internal class ConcreteLinkedByteArray(private val bufferSize: Int = defaultBuff
     private val availableSpace: Int
         get() = activeBuffer.size - tailOffset
 
+    private var cachedSize: Int = -1
+
+    private fun dirtySize() {
+        cachedSize = -1
+    }
+
     override val size: Int
-        get() = outputBuffers.fold(0) { sum, nextBuffer ->
-            sum + nextBuffer.size
-        } - outputBuffers[outputBuffers.size - 1].size + tailOffset - tipOffset
+        get() {
+            return if (cachedSize >= 0) {
+                cachedSize
+            } else {
+                cachedSize = outputBuffers.fold(0) { sum, nextBuffer ->
+                    sum + nextBuffer.size
+                } - outputBuffers[outputBuffers.size - 1].size + tailOffset - tipOffset
+
+                cachedSize
+            }
+        }
 
     override fun reset() {
         tipOffset = 0
@@ -47,6 +63,7 @@ internal class ConcreteLinkedByteArray(private val bufferSize: Int = defaultBuff
 
         bufferCache.addAll(outputBuffers)
         outputBuffers.clear()
+        dirtySize()
     }
 
     override fun clear() {
@@ -133,12 +150,75 @@ internal class ConcreteLinkedByteArray(private val bufferSize: Int = defaultBuff
         }
     }
 
-    override fun write(bytes: ByteArray, sourceOffset: Int, length: Int) {
+    override fun write(byte: Byte, destinationOffset: Int) {
+        tempBytes[0] = byte
+
+        write(tempBytes, 0, destinationOffset)
+    }
+
+    private fun bufferStart(index: Int): Int {
+        return if (index == 0) {
+            tipOffset
+        } else {
+            0
+        }
+    }
+
+    private fun bufferEnd(index: Int): Int {
+        return if (index == outputBuffers.size - 1) {
+            tailOffset
+        } else {
+            outputBuffers[index].size
+        }
+    }
+
+    private fun bufferSize(index: Int): Int {
+        return bufferEnd(index) - bufferStart(index)
+    }
+
+    override fun write(bytes: ByteArray, sourceOffset: Int, destinationOffset: Int, length: Int) {
         var remaining = length
         var offset = sourceOffset
 
         if (length + sourceOffset > bytes.size) {
             throw IndexOutOfBoundsException("Provided bytes too small, ${length + sourceOffset} > ${bytes.size}")
+        }
+
+        if (destinationOffset < size) {
+            // overwrite the current buffer until we reach the end (if we reach the end)
+            var overwriteRemaining = min(size - destinationOffset, length)
+            var overwriteOffset = 0
+            var bufferOffset = 0
+            var overwriteBufferOffset = 0
+
+            while (overwriteOffset < destinationOffset) {
+                if (bufferSize(bufferOffset) < destinationOffset - overwriteOffset) {
+                    bufferOffset++
+                    overwriteOffset += bufferSize(bufferOffset)
+                } else {
+                    overwriteBufferOffset = if (bufferOffset == 0) {
+                        destinationOffset - overwriteOffset + tipOffset
+                    }
+                    else {
+                        destinationOffset - overwriteOffset
+                    }
+                    overwriteOffset = destinationOffset
+                    break
+                }
+            }
+
+            while (overwriteRemaining > 0) {
+                val bytesWritten = min(overwriteRemaining, bufferEnd(bufferOffset) - overwriteBufferOffset)
+
+                bytes.copyInto(outputBuffers[bufferOffset], overwriteBufferOffset, offset, bytesWritten)
+
+                offset += bytesWritten
+                remaining -= bytesWritten
+                overwriteRemaining -= bytesWritten
+                overwriteBufferOffset = 0
+
+                bufferOffset++
+            }
         }
 
         while (remaining > 0) {
@@ -161,6 +241,8 @@ internal class ConcreteLinkedByteArray(private val bufferSize: Int = defaultBuff
             outputBuffers.add(allocate())
             tailOffset = 0
         }
+
+        dirtySize()
     }
 
     override fun read(bytes: ByteArray, destinationOffset: Int, length: Int) {
@@ -195,6 +277,7 @@ internal class ConcreteLinkedByteArray(private val bufferSize: Int = defaultBuff
             tipOffset = 0
             tailOffset = 0
         }
+        dirtySize()
     }
 
     override fun read(length: Int) = ByteArray(length).also {

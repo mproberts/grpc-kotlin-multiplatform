@@ -29,7 +29,9 @@ interface LinkedByteArray {
 
 interface MutableLinkedByteArray : LinkedByteArray {
 
-    fun write(bytes: ByteArray, sourceOffset: Int = 0, length: Int = bytes.size - sourceOffset)
+    fun write(byte: Byte, destinationOffset: Int = size)
+
+    fun write(bytes: ByteArray, sourceOffset: Int = 0, destinationOffset: Int = size, length: Int = bytes.size - sourceOffset)
 }
 
 @Suppress("FunctionName")

@@ -180,4 +180,26 @@ class LinkedByteArrayTests {
         assertEquals("0a 0b", subbytes.readAdvance(2).toHexString(true))
         assertEquals(0, subbytes.size)
     }
+
+    @Test
+    fun `Overwrite internal content`() {
+        bytes.write("01 02 03 04 05 06 07 08 09 0a 0b 0c 0d 0e 0f 10 11 12 13 14 15".toByteArray())
+        bytes.write("a5 a6 a7 a8".toByteArray(), destinationOffset = 4)
+
+        assertEquals(
+            "01 02 03 04 a5 a6 a7 a8 09 0a 0b 0c 0d 0e 0f 10 11 12 13 14 15",
+            bytes.toByteArray().toHexString(true)
+        )
+    }
+
+    @Test
+    fun `Overwrite and extend`() {
+        bytes.write("01 02 03 04 05 06 07".toByteArray())
+        bytes.write("a5 a6 a7 a8 a9 b0".toByteArray(), destinationOffset = 4)
+
+        assertEquals(
+            "01 02 03 04 a5 a6 a7 a8 a9 b0",
+            bytes.toByteArray().toHexString(true)
+        )
+    }
 }
