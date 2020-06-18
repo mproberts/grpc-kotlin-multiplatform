@@ -122,7 +122,6 @@ open class ScopedProtobufWriter(private val output: MutableLinkedByteArray) : Pr
         }
 
         // write the message length into the buffer at the reserved position
-        println("size of size $sizeOfSize = $messageLength")
         var value = messageLength
         var lengthOffset = messageLengthOffset
 
