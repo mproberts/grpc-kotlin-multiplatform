@@ -1,9 +1,9 @@
 Codegen
- ☐ Generator structure
- ☐ Test runner
- ☐ Data classes
+ ✔ Generator structure @done (20-06-17 14:08)
+ ✔ Test runner @done (20-06-17 14:08)
+ ✔ Data classes @done (20-06-17 14:08)
    ☐ Validation
- ☐ Generate builders
+ ✔ Generate builders @done (20-06-17 14:08)
  ☐ Generate encoders
  ☐ Generate decoders
  ☐ Generate services
