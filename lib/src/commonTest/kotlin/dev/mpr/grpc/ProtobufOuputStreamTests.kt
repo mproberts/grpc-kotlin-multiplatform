@@ -40,7 +40,7 @@ class ProtobufOuputStreamTests {
         // message Test3 {
         //     optional Test1 c = 3;
         // }
-        encodeMessage(3) {
+        encode(3) {
             encode(1, 150)
         }
     }
@@ -62,9 +62,9 @@ class ProtobufOuputStreamTests {
         // message Test4 {
         //     optional int32 d = 4;
         // }
-        encodeMessage(1) {
-            encodeMessage(2) {
-                encodeMessage(3) {
+        encode(1) {
+            encode(2) {
+                encode(3) {
                     encode(4, 150)
                 }
             }
@@ -75,7 +75,7 @@ class ProtobufOuputStreamTests {
     fun `Short embeded message`() = verifyWrite(
         "0a 09 12 07 " +
         "00 01 02 03 04 05 06") {
-        encodeMessage(1) {
+        encode(1) {
             encode(2, "00 01 02 03 04 05 06".toByteArray())
         }
     }
@@ -102,7 +102,7 @@ class ProtobufOuputStreamTests {
         // message Test2 {
         //     optional string b = 2;
         // }
-        encodeMessage(1) {
+        encode(1) {
             encode(2, (
                     "00 01 02 03 04 05 06 07 08 09 0a 0b 0c 0d 0e 0f " +
                     "10 11 12 13 14 15 16 17 18 19 1a 1b 1c 1d 1e 1f " +

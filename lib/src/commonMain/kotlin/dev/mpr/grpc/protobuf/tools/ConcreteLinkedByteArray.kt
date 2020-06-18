@@ -204,7 +204,6 @@ internal class ConcreteLinkedByteArray(private val bufferSize: Int = defaultBuff
                     else {
                         destinationOffset - overwriteOffset
                     }
-                    overwriteOffset = destinationOffset
                     break
                 }
             }
@@ -229,7 +228,6 @@ internal class ConcreteLinkedByteArray(private val bufferSize: Int = defaultBuff
                 bytes.copyInto(activeBuffer, tailOffset, offset, offset + remaining)
 
                 tailOffset += remaining
-                remaining = 0
                 break
             }
 

@@ -38,6 +38,8 @@ type Context interface {
 
 	BuilderName(node pgs.Node) pgs.Name
 
+	IsBytes(field pgs.Field) bool
+
 	FullyQualifiedName(node pgs.Node) pgs.Name
 
 	// ServerName returns the name of the server interface for the Service.

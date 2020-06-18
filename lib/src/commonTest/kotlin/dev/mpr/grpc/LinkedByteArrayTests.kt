@@ -7,6 +7,7 @@ import kotlin.test.assertEquals
 
 private val hexCharLookup = "0123456789abcdef"
 
+@ExperimentalUnsignedTypes
 fun ByteArray.toHexString(space: Boolean = false) = fold(StringBuilder()) { builder, byte ->
     if (space && builder.isNotEmpty()) {
         builder.append(' ')

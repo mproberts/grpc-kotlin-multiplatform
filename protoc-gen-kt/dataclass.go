@@ -39,6 +39,7 @@ func (p *TemplateGenPlugin) InitContext(c pgs.BuildContext) {
 	funcs["name"] = p.ctx.Name
 	funcs["fieldTypeName"] = p.ctx.FieldTypeName
 	funcs["type"] = p.ctx.Type
+	funcs["isBytes"] = p.ctx.IsBytes
 	funcs["imports"] = p.ctx.Imports
 	funcs["default"] = p.ctx.DefaultValue
 	funcs["include"] = func(name string, data interface{}) (string, error) {

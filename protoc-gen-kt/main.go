@@ -8,18 +8,46 @@ func main() {
 	pgs.Init(
 		pgs.DebugEnv("DEBUG"),
 	).RegisterModule(
+		RenderTemplate(encoderTpl, ".encode.kt"),
 		RenderTemplate(dataClassTpl, ".data.kt"),
 		RenderTemplate(builderTpl, ".builder.kt"),
 	).Render()
 }
 
+const encoderTpl = `package {{ package . }}
+{{ range imports . }}
+import {{ . }}
+import {{ . }}.writeTo{{ end }}
+import dev.mpr.grpc.protobuf.tools.ProtobufWriter
+{{- define "message" }}
+fun {{ simpleName . }}.writeTo(writer: ProtobufWriter) {
+    {{- range $index, $_ := .Fields }}
+	{{ if .Type.IsEmbed }}
+    {{ name . }}?.let { value ->
+        writer.encode({{ .Descriptor.Number }}) {
+        	value.writeTo(this)
+        }
+    }
+	{{ else if .Type.IsMap }}
+	{{ else if .Type.IsRepeated }}
+	{{ else if .Type.IsEnum }}
+	if ({{ name . }} != {{ default . }}) writer.encode({{ .Descriptor.Number }}, {{ name . }}.ordinal){{ else if isBytes . }}
+    if ({{ name . }}.isNotEmpty()) writer.encode({{ .Descriptor.Number }}, {{ name . }}){{ else }}
+    if ({{ name . }} != {{ default . }}) writer.encode({{ .Descriptor.Number }}, {{ name . }}){{ end }}
+    {{ end }}
+
+	unknownFields?.let { writer.write(it) }
+}
+{{ end -}}
+{{ range .Messages }}{{ template "message" . }}{{ end -}}`
+
 const dataClassTpl = `package {{ package . }}
 {{ range imports . }}
 import {{ . }}{{ end }}
 {{- define "enum" }}
-enum class {{ simpleName . }} {
+enum class {{ simpleName . }}(val value: Int) {
     {{- range $index, $_ := .Values }}{{ if $index }},{{ end }}
-    {{ name . }}{{ end }};
+    {{ name . }}({{ .Descriptor.Number }}){{ end }};
 }
 {{ end -}}
 
@@ -32,14 +60,14 @@ data class {{ simpleName . }}(
     {{- range .Messages }}{{ include "message" . | indent 4 }}{{ end }}
     {{- range .Enums }}{{ include "enum" . | indent 4 }}{{ end }}
     companion object {
-		fun build(builder: {{ builderName . }}.() -> Unit): {{ name . }} {
-			return {{ builderName . }}().apply(builder).build()
-		}
+        fun build(builder: {{ builderName . }}.() -> Unit): {{ name . }} {
+            return {{ builderName . }}().apply(builder).build()
+        }
     }
 
-	fun copyBuild(builder: {{ builderName . }}.() -> Unit): {{ name . }} {
-		return {{ builderName . }}(this).apply(builder).build()
-	}
+    fun copyBuild(builder: {{ builderName . }}.() -> Unit): {{ name . }} {
+        return {{ builderName . }}(this).apply(builder).build()
+    }
 }
 {{ end }}
 {{ range .Messages }}{{ template "message" . }}{{ end -}}

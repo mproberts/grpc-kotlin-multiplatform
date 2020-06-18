@@ -136,6 +136,30 @@ func (c context) Name(node pgs.Node) pgs.Name {
 	}
 }
 
+func (c context) IsBytes( field pgs.Field) bool {
+	ft := field.Type()
+	switch {
+	case ft.IsMap():
+		return false
+	case ft.IsRepeated():
+		return false
+	case ft.IsEmbed():
+		return false
+	case ft.IsEnum():
+		return false
+	default:
+		t := ft.ProtoType()
+		switch t {
+		case pgs.BytesT:
+			return true
+		default:
+			return false
+		}
+	}
+	
+	panic("unreachable: invalid scalar type")
+}
+
 func (c context) DefaultValue(field pgs.Field) string {
 	ft := field.Type()
 
@@ -238,34 +262,34 @@ func PGGLowerCamelCase(n pgs.Name) pgs.Name {
 }
 
 var protectedNames = map[pgs.Name]pgs.Name{
-	"as":           "as": "as_",
-	"break":        "break": "break_",
-	"class":        "class": "class_",
-	"continue":     "continue": "continue_",
-	"do":           "do": "do_",
-	"else":         "else": "else_",
-	"false":        "false": "false_",
-	"for":          "for": "for_",
-	"fun":          "fun": "fun_",
-	"if":           "if": "if_",
-	"in":           "in": "in_",
-	"interface":    "interface": "interface_",
-	"is":           "is": "is_",
-	"null":         "null": "null_",
-	"object":       "object": "object_",
-	"package":      "package": "package_",
-	"return":       "return": "return_",
-	"super":        "super": "super_",
-	"this":         "this": "this_",
-	"throw":        "throw": "throw_",
-	"true":         "true": "true_",
-	"try":          "try": "try_",
-	"typealias":    "typealias": "typealias_",
-	"typeof":       "typeof": "typeof_",
-	"val":          "val": "val_",
-	"var":          "var": "var_",
-	"when":         "when": "when_",
-	"while":        "while": "while_",
+	"as": "as_",
+	"break": "break_",
+	"class": "class_",
+	"continue": "continue_",
+	"do": "do_",
+	"else": "else_",
+	"false": "false_",
+	"for": "for_",
+	"fun": "fun_",
+	"if": "if_",
+	"in": "in_",
+	"interface": "interface_",
+	"is": "is_",
+	"null": "null_",
+	"object": "object_",
+	"package": "package_",
+	"return": "return_",
+	"super": "super_",
+	"this": "this_",
+	"throw": "throw_",
+	"true": "true_",
+	"try": "try_",
+	"typealias": "typealias_",
+	"typeof": "typeof_",
+	"val": "val_",
+	"var": "var_",
+	"when": "when_",
+	"while": "while_",
 }
 
 func replaceProtected(n pgs.Name) pgs.Name {
