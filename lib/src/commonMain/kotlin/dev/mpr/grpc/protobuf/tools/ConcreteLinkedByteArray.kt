@@ -17,11 +17,33 @@ internal class ConcreteLinkedByteArray(private val bufferSize: Int = defaultBuff
     }
 
     private fun reclaim(bytes: ByteArray) {
-        if (bufferCache.size > defaultCacheLimit) {
+        if (bytes.size != bufferSize) {
+            // only cache buffers that are of the default size for consistency
+            return
+        } else if (bufferCache.size > defaultCacheLimit) {
             return
         }
 
         bufferCache.add(bytes)
+    }
+    private fun bufferStart(index: Int): Int {
+        return if (index == 0) {
+            tipOffset
+        } else {
+            0
+        }
+    }
+
+    private fun bufferEnd(index: Int): Int {
+        return if (index == outputBuffers.size - 1) {
+            tailOffset
+        } else {
+            outputBuffers[index].size
+        }
+    }
+
+    private fun bufferSize(index: Int): Int {
+        return bufferEnd(index) - bufferStart(index)
     }
 
     private val tempBytes = ByteArray(1)
@@ -156,26 +178,6 @@ internal class ConcreteLinkedByteArray(private val bufferSize: Int = defaultBuff
         write(tempBytes, 0, destinationOffset)
     }
 
-    private fun bufferStart(index: Int): Int {
-        return if (index == 0) {
-            tipOffset
-        } else {
-            0
-        }
-    }
-
-    private fun bufferEnd(index: Int): Int {
-        return if (index == outputBuffers.size - 1) {
-            tailOffset
-        } else {
-            outputBuffers[index].size
-        }
-    }
-
-    private fun bufferSize(index: Int): Int {
-        return bufferEnd(index) - bufferStart(index)
-    }
-
     override fun write(bytes: ByteArray, sourceOffset: Int, destinationOffset: Int, length: Int) {
         var remaining = length
         var offset = sourceOffset
@@ -243,6 +245,51 @@ internal class ConcreteLinkedByteArray(private val bufferSize: Int = defaultBuff
         }
 
         dirtySize()
+    }
+
+    override fun insert(bytes: ByteArray, sourceOffset: Int, destinationOffset: Int, length: Int) {
+        // find the split offset
+        var remainingDestinationOffset = destinationOffset
+        var writeOffset = 0
+        var writeBufferOffset = 0
+
+        while (remainingDestinationOffset > 0) {
+            if (remainingDestinationOffset > bufferSize(writeBufferOffset)) {
+                remainingDestinationOffset -= bufferSize(writeBufferOffset)
+                writeBufferOffset++
+            } else {
+                writeOffset = remainingDestinationOffset
+                break
+            }
+        }
+
+        // split the buffer at the offset into a and b
+        val splitBuffer = outputBuffers[writeBufferOffset]
+
+        val headBuffer = splitBuffer.copyOfRange(bufferStart(writeBufferOffset), writeOffset)
+        val tailBuffer = splitBuffer.copyOfRange(writeOffset, bufferEnd(writeBufferOffset))
+        val wasTip = writeBufferOffset == 0
+        val wasTail = writeBufferOffset == outputBuffers.size - 1
+
+        // trim a and b and insert both at the active position
+        outputBuffers.removeAt(writeBufferOffset)
+
+        outputBuffers.add(writeBufferOffset, headBuffer)
+
+        // insert the new bytes between a and b
+        outputBuffers.add(writeBufferOffset + 1, bytes.copyOfRange(sourceOffset, sourceOffset + length))
+        outputBuffers.add(writeBufferOffset + 2, tailBuffer)
+
+        if (wasTip) {
+            tipOffset = 0
+        }
+
+        if (wasTail) {
+            // if the active buffer was split, replace the active buffer with a
+            // fresh active buffer with clean state
+            tailOffset = 0
+            outputBuffers.add(allocate())
+        }
     }
 
     override fun read(bytes: ByteArray, destinationOffset: Int, length: Int) {

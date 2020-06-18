@@ -202,4 +202,26 @@ class LinkedByteArrayTests {
             bytes.toByteArray().toHexString(true)
         )
     }
+
+    @Test
+    fun `Insert bytes`() {
+        bytes.write("01 02 03 04 05 06 07".toByteArray())
+        bytes.insert("0a 0b 0c".toByteArray(), 0, 3)
+
+        assertEquals(
+            "01 02 03 0a 0b 0c 04 05 06 07",
+            bytes.toByteArray().toHexString(true)
+        )
+    }
+
+    @Test
+    fun `Insert bytes into multi-block array`() {
+        bytes.write("01 02 03 04 05 06 07 08 11 12 13 14 15 16 17 18 21 22 23 24 25 26 27 28 31 32 33".toByteArray())
+        bytes.insert("0a 0b 0c".toByteArray(), 0, 12)
+
+        assertEquals(
+            "01 02 03 04 05 06 07 08 11 12 13 14 0a 0b 0c 15 16 17 18 21 22 23 24 25 26 27 28 31 32 33",
+            bytes.toByteArray().toHexString(true)
+        )
+    }
 }
