@@ -11,6 +11,7 @@ import (
 
 	pgskt "github.com/mproberts/grpc-kotlin-multiplatform/protoc-gen-kt/lang/kt"
 	pgs "github.com/lyft/protoc-gen-star"
+	"github.com/golang/protobuf/protoc-gen-go/generator"
 )
 
 type TemplateGenPlugin struct {
@@ -36,9 +37,14 @@ func (p *TemplateGenPlugin) InitContext(c pgs.BuildContext) {
 	funcs["qualifiedName"] = p.ctx.QualifiedName
 	funcs["fullyQualifiedName"] = p.ctx.FullyQualifiedName
 	funcs["package"] = p.ctx.PackageName
+	funcs["upperCamel"] = generator.CamelCase
+	funcs["lowerCamel"] = generator.CamelCase
 	funcs["name"] = p.ctx.Name
 	funcs["fieldTypeName"] = p.ctx.FieldTypeName
+	funcs["fieldTypeNameNonNull"] = p.ctx.FieldTypeNameNonNull
+	funcs["elTypeName"] = p.ctx.ElType
 	funcs["type"] = p.ctx.Type
+	funcs["typeNonNull"] = p.ctx.TypeNonNull
 	funcs["isBytes"] = p.ctx.IsBytes
 	funcs["imports"] = p.ctx.Imports
 	funcs["default"] = p.ctx.DefaultValue

@@ -30,9 +30,13 @@ type Context interface {
 
 	SimpleName(node pgs.Node) pgs.Name
 
-	FieldTypeName(ft pgs.FieldTypeElem) pgs.Name
+	FieldTypeName(ft pgs.FieldTypeElem) TypeName
+
+	FieldTypeNameNonNull(ft pgs.FieldTypeElem) TypeName
 
 	QualifiedName(node pgs.Node) pgs.Name
+
+	ElType(fte pgs.FieldTypeElem) TypeName
 
 	Imports(pgs.File) []string
 
@@ -62,6 +66,8 @@ type Context interface {
 	// generated message struct from protoc-gen-go. Fields from imported
 	// packages will be prefixed with the package name.
 	Type(field pgs.Field) TypeName
+	
+	TypeNonNull(field pgs.Field) TypeName
 
 	DefaultValue(field pgs.Field) string
 

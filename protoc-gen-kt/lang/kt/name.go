@@ -95,8 +95,46 @@ func (c context) FullyQualifiedName(node pgs.Node) pgs.Name {
 	}
 }
 
-func (c context) FieldTypeName(ft pgs.FieldTypeElem) pgs.Name {
-	return pgs.Name("String")
+func (c context) FieldTypeNameNonNull(fte pgs.FieldTypeElem) TypeName {
+	ft := fte.ParentType()
+
+	var t TypeName
+	switch {
+	case ft.IsMap():
+		key := scalarType(ft.Key().ProtoType())
+		return TypeName(fmt.Sprintf("Map<%s, %s>", key, c.elType(ft)))
+	case ft.IsRepeated():
+		return TypeName(fmt.Sprintf("List<%s>", c.elType(ft)))
+	case ft.IsEmbed():
+		return TypeName(c.Name(ft.Embed()).String())
+	case ft.IsEnum():
+		t = c.importableTypeName(ft.Field(), ft.Enum())
+	default:
+		t = scalarType(ft.ProtoType())
+	}
+
+	return t
+}
+
+func (c context) FieldTypeName(fte pgs.FieldTypeElem) TypeName {
+	ft := fte.ParentType()
+
+	var t TypeName
+	switch {
+	case ft.IsMap():
+		key := scalarType(ft.Key().ProtoType())
+		return TypeName(fmt.Sprintf("Map<%s, %s>", key, c.elType(ft)))
+	case ft.IsRepeated():
+		return TypeName(fmt.Sprintf("List<%s>", c.elType(ft)))
+	case ft.IsEmbed():
+		return TypeName(c.Name(ft.Embed()).String() + "?")
+	case ft.IsEnum():
+		t = c.importableTypeName(ft.Field(), ft.Enum())
+	default:
+		t = scalarType(ft.ProtoType())
+	}
+
+	return t
 }
 
 func (c context) Name(node pgs.Node) pgs.Name {

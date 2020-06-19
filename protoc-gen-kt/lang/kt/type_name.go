@@ -7,6 +7,27 @@ import (
 	pgs "github.com/lyft/protoc-gen-star"
 )
 
+func (c context) TypeNonNull(f pgs.Field) TypeName {
+	ft := f.Type()
+
+	var t TypeName
+	switch {
+	case ft.IsMap():
+		key := scalarType(ft.Key().ProtoType())
+		return TypeName(fmt.Sprintf("Map<%s, %s>", key, c.elType(ft)))
+	case ft.IsRepeated():
+		return TypeName(fmt.Sprintf("List<%s>", c.elType(ft)))
+	case ft.IsEmbed():
+		return TypeName(c.Name(ft.Embed()).String())
+	case ft.IsEnum():
+		t = c.importableTypeName(f, ft.Enum())
+	default:
+		t = scalarType(ft.ProtoType())
+	}
+
+	return t
+}
+
 func (c context) Type(f pgs.Field) TypeName {
 	ft := f.Type()
 
@@ -45,6 +66,17 @@ func (c context) qualifiedElType(ft pgs.FieldType) TypeName {
 		return TypeName(c.PackageName(el.Enum()).String() + "." + c.Name(el.Enum()).String())
 	case el.IsEmbed():
 		return TypeName(c.PackageName(el.Embed()).String() + "." + c.Name(el.Embed()).String()).Pointer()
+	default:
+		return scalarType(el.ProtoType())
+	}
+}
+
+func (c context) ElType(el pgs.FieldTypeElem) TypeName {
+	switch {
+	case el.IsEnum():
+		return c.importableTypeName(el.ParentType().Field(), el.Enum())
+	case el.IsEmbed():
+		return TypeName(c.Name(el.Embed()))
 	default:
 		return scalarType(el.ProtoType())
 	}
