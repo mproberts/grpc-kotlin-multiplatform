@@ -24,11 +24,11 @@ fun {{ simpleName . }}.writeTo(writer: ProtobufWriter) {
     {{ range .OneOfs }}
     when ({{ .Descriptor.Name }}) {
         {{- range .Fields }}
-    	{{ if .Type.IsEmbed }}
+    	{{- if .Type.IsEmbed }}
         is {{ name .Message }}.OneOf{{ upperCamel .OneOf.Descriptor.Name }}.{{ name . }} -> writer.encode({{ .Descriptor.Number }}) { {{ .OneOf.Descriptor.Name }}.{{ name . }}.writeTo(this) }
-    	{{ else }}
+    	{{- else }}
         is {{ name .Message }}.OneOf{{ upperCamel .OneOf.Descriptor.Name }}.{{ name . }} -> writer.encode({{ .Descriptor.Number }}, {{ .OneOf.Descriptor.Name }}.{{ name . }})
-        {{ end }}
+        {{- end }}
         {{ end }}
     }
     {{ end }}
