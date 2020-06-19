@@ -4,9 +4,9 @@ import dev.mpr.grpc.ProtoDsl
 
 @ProtoDsl
 class EmptyBuilder {
-	constructor()
+    constructor()
 
-	constructor(copy: Empty) {
+    constructor(copy: Empty) {
 	    builderCopy.unknownFields = copy.unknownFields
 	}
 
@@ -18,4 +18,5 @@ class EmptyBuilder {
     	builderCopy.unknownFields
 	)
 	
+    
 }

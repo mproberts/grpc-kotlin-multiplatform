@@ -4,9 +4,9 @@ import dev.mpr.grpc.ProtoDsl
 
 @ProtoDsl
 class StructBuilder {
-	constructor()
+    constructor()
 
-	constructor(copy: Struct) {
+    constructor(copy: Struct) {
 	    builderCopy.fields = copy.fields
 	    builderCopy.unknownFields = copy.unknownFields
 	}
@@ -21,125 +21,120 @@ class StructBuilder {
     	builderCopy.unknownFields
 	)
 	
-	var fields: Map<String, Value>
-		set(value) {
-			builderCopy.fields = value
-		}
+    
+    var fields: Map<String, Value>
+        set(value) {
+            builderCopy.fields = value
+        }
 
-		get() = builderCopy.fields
-	
-	@ProtoDsl
-	inner class fieldsMapBuilder {
-		infix fun String.to(builder: ValueBuilder.() -> Unit) {
-			builderCopy.fields = builderCopy.fields + Pair(this, ValueBuilder().apply(builder).build())
-		}
+        get() = builderCopy.fields
+    
+    @ProtoDsl
+    inner class fieldsMapBuilder {
+        infix fun String.to(value: Value) {
+            builderCopy.fields = builderCopy.fields + Pair(this, value)
+        }
 
-		fun fields(key: String, builder: ValueBuilder.() -> Unit) {
-			key to ValueBuilder().apply(builder).build()
-		}
-	}
+        fun value(key: String, builder: ValueBuilder.() -> Unit) {
+            key to ValueBuilder().apply(builder).build()
+        }
+    }
 
-	fun fields(builder: fieldsMapBuilder.() -> Unit) {
-		fieldsMapBuilder().apply(builder)
-	}
-	
+    fun fields(builder: fieldsMapBuilder.() -> Unit) {
+        fieldsMapBuilder().apply(builder)
+    }
+    
 }
 
 @ProtoDsl
 class ValueBuilder {
-	constructor()
+    constructor()
 
-	constructor(copy: Value) {
-	    builderCopy.nullValue = copy.nullValue
-	    builderCopy.numberValue = copy.numberValue
-	    builderCopy.stringValue = copy.stringValue
-	    builderCopy.boolValue = copy.boolValue
-	    builderCopy.structValue = copy.structValue
-	    builderCopy.listValue = copy.listValue
+    constructor(copy: Value) {
+	    builderCopy.kind = copy.kind
 	    builderCopy.unknownFields = copy.unknownFields
 	}
 
 	private object builderCopy {
-	    var nullValue: NullValue = NullValue.NULL_VALUE
-	    var numberValue: Double = 0.0
-	    var stringValue: String = ""
-	    var boolValue: Boolean = false
-	    var structValue: Struct? = null
-	    var listValue: ListValue? = null
+	    var kind: Value.OneOfKind? = null
 	    var unknownFields: ByteArray? = null
 	}
 
 	fun build(): Value = Value(
-    	builderCopy.nullValue,
-    	builderCopy.numberValue,
-    	builderCopy.stringValue,
-    	builderCopy.boolValue,
-    	builderCopy.structValue,
-    	builderCopy.listValue,
+    	builderCopy.kind,
     	builderCopy.unknownFields
 	)
 	
-	var nullValue: NullValue
-		set(value) {
-			builderCopy.nullValue = value
-		}
+	@ProtoDsl
+	inner class OneOfkindBuilder {
+		var nullValue: NullValue?
+			set(value) {
+				builderCopy.kind = value?.let { Value.OneOfKind.nullValue(it) }
+			}
 
-		get() = builderCopy.nullValue
-	
-	
-	var numberValue: Double
-		set(value) {
-			builderCopy.numberValue = value
-		}
+			get() = (builderCopy.kind as? Value.OneOfKind.nullValue)?.nullValue
+            
+        
+		var numberValue: Double?
+			set(value) {
+				builderCopy.kind = value?.let { Value.OneOfKind.numberValue(it) }
+			}
 
-		get() = builderCopy.numberValue
-	
-	
-	var stringValue: String
-		set(value) {
-			builderCopy.stringValue = value
-		}
+			get() = (builderCopy.kind as? Value.OneOfKind.numberValue)?.numberValue
+            
+        
+		var stringValue: String?
+			set(value) {
+				builderCopy.kind = value?.let { Value.OneOfKind.stringValue(it) }
+			}
 
-		get() = builderCopy.stringValue
-	
-	
-	var boolValue: Boolean
-		set(value) {
-			builderCopy.boolValue = value
-		}
+			get() = (builderCopy.kind as? Value.OneOfKind.stringValue)?.stringValue
+            
+        
+		var boolValue: Boolean?
+			set(value) {
+				builderCopy.kind = value?.let { Value.OneOfKind.boolValue(it) }
+			}
 
-		get() = builderCopy.boolValue
-	
-	
-	var structValue: Struct?
-		set(value) {
-			builderCopy.structValue = value
-		}
+			get() = (builderCopy.kind as? Value.OneOfKind.boolValue)?.boolValue
+            
+        
+		var structValue: Struct?
+			set(value) {
+				builderCopy.kind = value?.let { Value.OneOfKind.structValue(it) }
+			}
 
-		get() = builderCopy.structValue
-	
-	fun structValue(builder: StructBuilder.() -> Unit) {
-		builderCopy.structValue = StructBuilder().apply(builder).build()
-	}
-	
-	var listValue: ListValue?
-		set(value) {
-			builderCopy.listValue = value
-		}
+			get() = (builderCopy.kind as? Value.OneOfKind.structValue)?.structValue
+            
+            fun structValue(builder: StructBuilder.() -> Unit) {
+                builderCopy.kind = StructBuilder().apply(builder).build().let { Value.OneOfKind.structValue(it) }
+            }
+        
+		var listValue: ListValue?
+			set(value) {
+				builderCopy.kind = value?.let { Value.OneOfKind.listValue(it) }
+			}
 
-		get() = builderCopy.listValue
-	
-	fun listValue(builder: ListValueBuilder.() -> Unit) {
-		builderCopy.listValue = ListValueBuilder().apply(builder).build()
-	}
-	
+			get() = (builderCopy.kind as? Value.OneOfKind.listValue)?.listValue
+            
+            fun listValue(builder: ListValueBuilder.() -> Unit) {
+                builderCopy.kind = ListValueBuilder().apply(builder).build().let { Value.OneOfKind.listValue(it) }
+            }
+        
+    }
+
+    fun kind(builder: OneOfkindBuilder.() -> Unit) {
+        OneOfkindBuilder().apply(builder)
+    }
+    
+    
 }
 
 @ProtoDsl
 class ListValueBuilder {
-	constructor()
+    constructor()
 
-	constructor(copy: ListValue) {
+    constructor(copy: ListValue) {
 	    builderCopy.values = copy.values
 	    builderCopy.unknownFields = copy.unknownFields
 	}
@@ -154,26 +149,27 @@ class ListValueBuilder {
     	builderCopy.unknownFields
 	)
 	
-	var values: List<Value>
-		set(value) {
-			builderCopy.values = value
-		}
+    
+    var values: List<Value>
+        set(value) {
+            builderCopy.values = value
+        }
 
-		get() = builderCopy.values
-	
-	@ProtoDsl
-	inner class valuesListBuilder {
-		fun add(value: Value) {
-			builderCopy.values = builderCopy.values + value
-		}
-		
-		fun addValue(builder: ValueBuilder.() -> Unit) {
-			add(ValueBuilder().apply(builder).build())
-		}
-	}
+        get() = builderCopy.values
+    
+    @ProtoDsl
+    inner class valuesListBuilder {
+        fun add(value: Value) {
+            builderCopy.values = builderCopy.values + value
+        }
+        
+        fun addValue(builder: ValueBuilder.() -> Unit) {
+            add(ValueBuilder().apply(builder).build())
+        }
+    }
 
-	fun values(builder: valuesListBuilder.() -> Unit) {
-		valuesListBuilder().apply(builder)
-	}
-	
+    fun values(builder: valuesListBuilder.() -> Unit) {
+        valuesListBuilder().apply(builder)
+    }
+    
 }

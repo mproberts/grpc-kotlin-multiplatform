@@ -7,12 +7,12 @@ data class Any(
     val unknownFields: ByteArray? = null
 ) {
     companion object {
-		fun build(builder: AnyBuilder.() -> Unit): Any {
-			return AnyBuilder().apply(builder).build()
-		}
+        fun build(builder: AnyBuilder.() -> Unit): Any {
+            return AnyBuilder().apply(builder).build()
+        }
     }
 
-	fun copyBuild(builder: AnyBuilder.() -> Unit): Any {
-		return AnyBuilder(this).apply(builder).build()
-	}
+    fun copyBuild(builder: AnyBuilder.() -> Unit): Any {
+        return AnyBuilder(this).apply(builder).build()
+    }
 }

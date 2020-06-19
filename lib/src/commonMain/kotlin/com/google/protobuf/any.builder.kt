@@ -4,9 +4,9 @@ import dev.mpr.grpc.ProtoDsl
 
 @ProtoDsl
 class AnyBuilder {
-	constructor()
+    constructor()
 
-	constructor(copy: Any) {
+    constructor(copy: Any) {
 	    builderCopy.typeUrl = copy.typeUrl
 	    builderCopy.value = copy.value
 	    builderCopy.unknownFields = copy.unknownFields
@@ -24,20 +24,21 @@ class AnyBuilder {
     	builderCopy.unknownFields
 	)
 	
-	var typeUrl: String
-		set(value) {
-			builderCopy.typeUrl = value
-		}
+    
+    var typeUrl: String
+        set(value) {
+            builderCopy.typeUrl = value
+        }
 
-		get() = builderCopy.typeUrl
-	
-	
-	var value: ByteArray
-		set(value) {
-			builderCopy.value = value
-		}
+        get() = builderCopy.typeUrl
+    
+    
+    var value: ByteArray
+        set(value) {
+            builderCopy.value = value
+        }
 
-		get() = builderCopy.value
-	
-	
+        get() = builderCopy.value
+    
+    
 }
