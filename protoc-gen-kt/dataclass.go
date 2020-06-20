@@ -45,6 +45,7 @@ func (p *TemplateGenPlugin) InitContext(c pgs.BuildContext) {
 	funcs["elTypeName"] = p.ctx.ElType
 	funcs["type"] = p.ctx.Type
 	funcs["typeNonNull"] = p.ctx.TypeNonNull
+	funcs["readerMethod"] = p.ctx.ReaderMethod
 	funcs["isBytes"] = p.ctx.IsBytes
 	funcs["imports"] = p.ctx.Imports
 	funcs["default"] = p.ctx.DefaultValue

@@ -2,17 +2,68 @@ package main
 
 import (
 	pgs "github.com/lyft/protoc-gen-star"
-)
+	)
 
-func main() {
+	func main() {
 	pgs.Init(
 		pgs.DebugEnv("DEBUG"),
 	).RegisterModule(
 		RenderTemplate(encoderTpl, ".encode.kt"),
+		RenderTemplate(decoderTpl, ".decode.kt"),
 		RenderTemplate(dataClassTpl, ".data.kt"),
 		RenderTemplate(builderTpl, ".builder.kt"),
 	).Render()
 }
+
+const decoderTpl = `package {{ package . }}
+{{ range imports . }}
+import {{ . }}
+import {{ . }}.Companion.readFrom{{ end }}
+import dev.mpr.grpc.protobuf.tools.ProtobufReader
+{{- define "message" }}
+fun {{ simpleName . }}.Companion.readFrom(reader: ProtobufReader) = build {
+    while (reader.nextField()) {
+        when (reader.currentFieldNumber) {
+	    {{ range .OneOfs }}
+	        {{- range .Fields }}
+	        {{- if .Type.IsEmbed }}
+	        {{ .Descriptor.Number }} -> {
+	            {{ .OneOf.Descriptor.Name }} {
+	                {{ name . }} = reader.readField { fieldReader ->
+	                    {{ name .Type.Embed }}.readFrom(fieldReader)
+	                }
+                }
+            }
+            {{ else if .Type.IsEnum }}
+            {{ else if isBytes . }}
+	        {{- else }}
+	        {{ .Descriptor.Number }} -> {
+	            {{ .OneOf.Descriptor.Name }} {
+                    {{ name . }} = reader.{{ readerMethod .Type.ProtoType }}()
+                }
+            }
+            {{- end }}
+            {{ end }}
+        {{ end }}
+    	{{- range .NonOneOfFields }}
+            {{ if .Type.IsEmbed }}{{ .Descriptor.Number }} -> {
+                {{ name . }} = reader.readField { fieldReader ->
+                    {{ type . }}.readFrom(fieldReader)
+                }
+            }
+            {{ else if .Type.IsMap }}
+            {{ else if .Type.IsRepeated }}
+            {{ else if .Type.IsEnum }}
+            {{ else if isBytes . }}
+            {{ else }}{{ .Descriptor.Number }} -> { {{ name . }} = reader.{{ readerMethod .Type.ProtoType }}() }
+            {{ end }}
+        {{- end }}
+        }
+    }
+}
+{{ end }}
+{{ range .AllMessages }}{{ template "message" . }}{{ end -}}
+`
 
 const encoderTpl = `package {{ package . }}
 {{ range imports . }}
@@ -24,9 +75,9 @@ fun {{ simpleName . }}.writeTo(writer: ProtobufWriter) {
     {{ range .OneOfs }}
     when ({{ .Descriptor.Name }}) {
         {{- range .Fields }}
-    	{{- if .Type.IsEmbed }}
+        {{- if .Type.IsEmbed }}
         is {{ name .Message }}.OneOf{{ upperCamel .OneOf.Descriptor.Name }}.{{ name . }} -> writer.encode({{ .Descriptor.Number }}) { {{ .OneOf.Descriptor.Name }}.{{ name . }}.writeTo(this) }
-    	{{- else }}
+        {{- else }}
         is {{ name .Message }}.OneOf{{ upperCamel .OneOf.Descriptor.Name }}.{{ name . }} -> writer.encode({{ .Descriptor.Number }}, {{ .OneOf.Descriptor.Name }}.{{ name . }})
         {{- end }}
         {{ end }}
@@ -104,38 +155,38 @@ class {{ builderName . }} {
     constructor()
 
     constructor(copy: {{ name . }}) {
-	    {{- range $index, $_ := .NonOneOfFields }}
-	    builderCopy.{{ name . }} = copy.{{ name . }}{{ end }}
-	    {{- range $index, $_ := .OneOfs }}
-	    builderCopy.{{ name . }} = copy.{{ name . }}{{ end }}
-	    builderCopy.unknownFields = copy.unknownFields
-	}
+        {{- range $index, $_ := .NonOneOfFields }}
+        builderCopy.{{ name . }} = copy.{{ name . }}{{ end }}
+        {{- range $index, $_ := .OneOfs }}
+        builderCopy.{{ name . }} = copy.{{ name . }}{{ end }}
+        builderCopy.unknownFields = copy.unknownFields
+    }
 
-	private object builderCopy {
-	    {{- range $index, $_ := .NonOneOfFields }}
-	    var {{ name . }}: {{ type . }} = {{ default . }}{{ end }}
-	    {{- range $index, $_ := .OneOfs }}
-	    var {{ .Descriptor.Name }}: {{ name .Message }}.OneOf{{ upperCamel .Descriptor.Name }}? = null{{ end }}
-	    var unknownFields: ByteArray? = null
-	}
+    private object builderCopy {
+        {{- range $index, $_ := .NonOneOfFields }}
+        var {{ name . }}: {{ type . }} = {{ default . }}{{ end }}
+        {{- range $index, $_ := .OneOfs }}
+        var {{ .Descriptor.Name }}: {{ name .Message }}.OneOf{{ upperCamel .Descriptor.Name }}? = null{{ end }}
+        var unknownFields: ByteArray? = null
+    }
 
-	fun build(): {{ name . }} = {{ name . }}(
+    fun build(): {{ name . }} = {{ name . }}(
     {{- range $index, $_ := .OneOfs }}
-    	builderCopy.{{ name . }},{{ end }}
+        builderCopy.{{ name . }},{{ end }}
     {{- range $index, $_ := .NonOneOfFields }}
-    	builderCopy.{{ name . }},{{ end }}
-    	builderCopy.unknownFields
-	)
-	{{ range .OneOfs }}
-	@ProtoDsl
-	inner class OneOf{{ name . }}Builder {
-    	{{- range .Fields }}
-		var {{ name . }}: {{ typeNonNull . }}?
-			set(value) {
-				builderCopy.{{ .OneOf.Descriptor.Name }} = value?.let { {{ name .OneOf.Message }}.OneOf{{ upperCamel .OneOf.Descriptor.Name }}.{{ name . }}(it) }
-			}
+        builderCopy.{{ name . }},{{ end }}
+        builderCopy.unknownFields
+    )
+    {{ range .OneOfs }}
+    @ProtoDsl
+    inner class OneOf{{ name . }}Builder {
+        {{- range .Fields }}
+        var {{ name . }}: {{ typeNonNull . }}?
+            set(value) {
+                builderCopy.{{ .OneOf.Descriptor.Name }} = value?.let { {{ name .OneOf.Message }}.OneOf{{ upperCamel .OneOf.Descriptor.Name }}.{{ name . }}(it) }
+            }
 
-			get() = (builderCopy.{{ .OneOf.Descriptor.Name }} as? {{ name .OneOf.Message }}.OneOf{{ upperCamel .OneOf.Descriptor.Name }}.{{ name . }})?.{{ name . }}
+            get() = (builderCopy.{{ .OneOf.Descriptor.Name }} as? {{ name .OneOf.Message }}.OneOf{{ upperCamel .OneOf.Descriptor.Name }}.{{ name . }})?.{{ name . }}
             {{ if .Type.IsEmbed }}
             fun {{ name . }}(builder: {{ .Type.Embed | builderName }}.() -> Unit) {
                 builderCopy.{{ .OneOf.Descriptor.Name }} = {{ .Type.Embed | builderName }}().apply(builder).build().let { {{ name .OneOf.Message }}.OneOf{{ upperCamel .OneOf.Descriptor.Name }}.{{ name . }}(it) }

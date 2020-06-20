@@ -237,6 +237,43 @@ func (c context) DefaultValue(field pgs.Field) string {
 	panic("unreachable: invalid scalar type")
 }
 
+func (c context) ReaderMethod(t pgs.ProtoType) string {
+	switch t {
+	case pgs.DoubleT:
+		return "readDouble"
+	case pgs.FloatT:
+		return "readFloat"
+	case pgs.Int64T:
+		return "readInt64"
+	case pgs.SInt64:
+		return "readInt64"
+	case pgs.SFixed64:
+		return "readInt64"
+	case pgs.Fixed64T:
+		return "readFixedInt64"
+	case pgs.UInt64T:
+		return "readUInt64"
+	case pgs.Int32T:
+		return "readFixedInt32"
+	case pgs.SInt32:
+		return "readFixed32"
+	case pgs.SFixed32:
+		return "readFixedInt32"
+	case pgs.UInt32T:
+		return "readUInt32"
+	case pgs.Fixed32T:
+		return "readFixedInt32"
+	case pgs.BoolT:
+		return "readBool"
+	case pgs.StringT:
+		return "readString"
+	case pgs.BytesT:
+		return "readBytes"
+	}
+	
+	panic("unreachable: invalid scalar type")
+}
+
 func (c context) OneofOption(field pgs.Field) pgs.Name {
 	n := pgs.Name(joinNames(c.Name(field.Message()), c.Name(field)))
 
