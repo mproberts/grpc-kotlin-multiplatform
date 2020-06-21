@@ -3,6 +3,7 @@ package dev.mpr.grpc.protobuf.tools
 internal object ProtoConstants {
     object Flags {
         const val TagType = 3
+        const val TagTypeBitCount = 3
     }
 
     object WireType {
@@ -10,6 +11,14 @@ internal object ProtoConstants {
         const val fixed64: Int = 1
         const val lengthDelimited: Int = 2
         const val fixed32: Int = 5
+    }
+
+    fun fieldNumberFromTag(tag: Int): Int {
+        return tag.ushr(Flags.TagType)
+    }
+
+    fun wireTypeFromTag(tag: Int): Int {
+        return tag and Flags.TagType
     }
 }
 
@@ -67,7 +76,8 @@ open class ScopedProtobufWriter(private val output: MutableLinkedByteArray) : Pr
     }
 
     override fun encode(fieldNumber: Int, value: String) {
-        TODO("Not yet implemented")
+        writeRawVarInt32(fieldTag(fieldNumber, ProtoConstants.WireType.lengthDelimited))
+        writeBytes(SerializationTools.writeString(value))
     }
 
     override fun encode(fieldNumber: Int, value: Boolean) {

@@ -1,9 +1,5 @@
 package dev.mpr.grpc.protobuf.tools
 
-import com.google.protobuf.StringValue
-import com.google.protobuf.Value
-import kotlin.experimental.or
-
 interface ProtobufReader {
     val currentFieldNumber: Int
 
@@ -38,7 +34,7 @@ interface ProtobufReader {
     fun readFixedInt64(): Long
 }
 
-class ScopedProtobufReader(
+internal class ScopedProtobufReader(
     private val input: LinkedByteArray
 ) : ProtobufReader {
     private val tempBuffer = ByteArray(8)
@@ -86,12 +82,8 @@ class ScopedProtobufReader(
         return input.readAdvance(length = readInt32())
     }
 
-    private fun decodeString(bytes: ByteArray): String {
-        TODO()
-    }
-
     override fun readString(): String {
-        return decodeString(readBytes())
+        return SerializationTools.readString(readBytes())
     }
 
     override fun readBool(): Boolean {
@@ -99,11 +91,13 @@ class ScopedProtobufReader(
     }
 
     override fun readSInt32(): Int {
-        TODO("Not yet implemented")
+        readInt32()
+        TODO("swizzle")
     }
 
     override fun readSInt64(): Long {
-        TODO("Not yet implemented")
+        readInt64()
+        TODO("swizzle")
     }
 
     override fun readFixedInt32(): Int {
@@ -127,6 +121,10 @@ class ScopedProtobufReader(
                 (tempBuffer[6].toLong() shl 8) or
                 (tempBuffer[7].toLong())
     }
+
+    override fun readFloat(): Float = Float.fromBits(readFixedInt32())
+
+    override fun readDouble(): Double = Double.fromBits(readFixedInt64())
 
     override fun readInt32(): Int {
         var tmp: Int = nextByte().toInt()
@@ -173,19 +171,15 @@ class ScopedProtobufReader(
         return result
     }
 
-    override fun readFloat(): Float = Float.fromBits(readFixedInt32())
-
-    override fun readDouble(): Double = Double.fromBits(readFixedInt64())
-
     override fun readInt64(): Long {
-        TODO("Not yet implemented")
+        TODO()
     }
 
     override fun readUInt32(): UInt {
-        TODO("Not yet implemented")
+        return readInt32().toUInt()
     }
 
     override fun readUInt64(): ULong {
-        TODO("Not yet implemented")
+        return readInt64().toULong()
     }
 }
