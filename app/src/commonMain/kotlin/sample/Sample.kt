@@ -13,15 +13,15 @@ expect object Platform {
 }
 
 fun hello(): String {
-    FullOfScalars.build {
+    val fullOfScalars = FullOfScalars.build {
         aBool = true
         anInt32 = 12
         aUint64 = Int.MAX_VALUE.toULong() + 2UL
     }
 
-    Empty()
+    val test = 12
 
-    Nested.build {
+    val nested = Nested.build {
         outerInt = 1
         innerMessage {
             innerInt = 2
@@ -31,7 +31,8 @@ fun hello(): String {
         }
     }
 
-    return "Hello from Test"
+
+    return "Hello from Test ${nested.innerMessage?.nestedInnerMessage?.innerInnerInt}"
 }
 
 class Proxy {

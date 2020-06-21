@@ -18,10 +18,10 @@ import (
 const decoderTpl = `package {{ package . }}
 {{ range imports . }}
 import {{ . }}
-import {{ . }}.Companion.readFrom{{ end }}
+import {{ fullyQualifiedName . }}.Companion.readFrom{{ end }}
 import dev.mpr.grpc.protobuf.tools.ProtobufReader
 {{- define "message" }}
-fun {{ simpleName . }}.Companion.readFrom(reader: ProtobufReader) = build {
+fun {{ fullyQualifiedName . }}.Companion.readFrom(reader: ProtobufReader) = build {
     while (reader.nextField()) {
         when (reader.currentFieldNumber) {
 	    {{ range .OneOfs }}
@@ -71,7 +71,7 @@ import {{ . }}
 import {{ . }}.writeTo{{ end }}
 import dev.mpr.grpc.protobuf.tools.ProtobufWriter
 {{- define "message" }}
-fun {{ simpleName . }}.writeTo(writer: ProtobufWriter) {
+fun {{ fullyQualifiedName . }}.writeTo(writer: ProtobufWriter) {
     {{ range .OneOfs }}
     when ({{ .Descriptor.Name }}) {
         {{- range .Fields }}
@@ -101,7 +101,7 @@ fun {{ simpleName . }}.writeTo(writer: ProtobufWriter) {
     unknownFields?.let { writer.write(it) }
 }
 {{ end -}}
-{{ range .Messages }}{{ template "message" . }}{{ end -}}`
+{{ range .AllMessages }}{{ template "message" . }}{{ end -}}`
 
 const dataClassTpl = `package {{ package . }}
 {{ range imports . }}
@@ -148,9 +148,8 @@ const builderTpl = `package {{ package . }}
 {{ range imports . }}
 import {{ . }}
 import {{ . }}Builder{{ end }}
-import dev.mpr.grpc.ProtoDsl
 {{- define "message" }}
-@ProtoDsl
+
 class {{ builderName . }} {
     constructor()
 
@@ -162,13 +161,15 @@ class {{ builderName . }} {
         builderCopy.unknownFields = copy.unknownFields
     }
 
-    private object builderCopy {
+    private data class BuilderCopy(
         {{- range $index, $_ := .NonOneOfFields }}
-        var {{ name . }}: {{ type . }} = {{ default . }}{{ end }}
+        var {{ name . }}: {{ type . }} = {{ default . }},{{ end }}
         {{- range $index, $_ := .OneOfs }}
-        var {{ .Descriptor.Name }}: {{ name .Message }}.OneOf{{ upperCamel .Descriptor.Name }}? = null{{ end }}
+        var {{ .Descriptor.Name }}: {{ name .Message }}.OneOf{{ upperCamel .Descriptor.Name }}? = null,{{ end }}
         var unknownFields: ByteArray? = null
-    }
+    )
+
+    private val builderCopy = BuilderCopy()
 
     fun build(): {{ name . }} = {{ name . }}(
     {{- range $index, $_ := .OneOfs }}
@@ -178,7 +179,7 @@ class {{ builderName . }} {
         builderCopy.unknownFields
     )
     {{ range .OneOfs }}
-    @ProtoDsl
+    
     inner class OneOf{{ name . }}Builder {
         {{- range .Fields }}
         var {{ name . }}: {{ typeNonNull . }}?
@@ -209,7 +210,7 @@ class {{ builderName . }} {
     fun {{ name . }}(builder: {{ builderName .Type.Embed }}.() -> Unit) {
         builderCopy.{{ name . }} = {{ builderName .Type.Embed }}().apply(builder).build()
     }{{ else if .Type.IsMap }}
-    @ProtoDsl
+    
     inner class {{ name . }}MapBuilder {
         infix fun {{ elTypeName .Type.Key }}.to(value: {{ name .Type.Element.Embed }}) {
             builderCopy.{{ name . }} = builderCopy.{{ name . }} + Pair(this, value)
@@ -223,7 +224,7 @@ class {{ builderName . }} {
     fun {{ name . }}(builder: {{ name . }}MapBuilder.() -> Unit) {
         {{ name . }}MapBuilder().apply(builder)
     }{{ else if .Type.IsRepeated }}
-    @ProtoDsl
+    
     inner class {{ name . }}ListBuilder {
         fun add(value: {{ name .Type.Element.Embed }}) {
             builderCopy.{{ name . }} = builderCopy.{{ name . }} + value

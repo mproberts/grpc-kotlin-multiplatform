@@ -13,7 +13,12 @@ kotlin {
     jvm()
     // This is for iPhone simulator
     // Switch here to iosArm64 (or iosArm32) to build library for iPhone device
-    iosX64("ios") {
+    iosArm64("ios") {
+        binaries {
+            framework()
+        }
+    }
+    iosX64("iosSim") {
         binaries {
             framework()
         }
@@ -40,6 +45,10 @@ kotlin {
                 implementation kotlin('test')
                 implementation kotlin('test-junit')
             }
+        }
+        iosSimMain {
+        }
+        iosSimTest {
         }
         iosMain {
         }
