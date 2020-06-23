@@ -7,16 +7,16 @@ class EmptyBuilder {
     constructor()
 
     constructor(copy: Empty) {
-	    builderCopy.unknownFields = copy.unknownFields
-	}
+        builderCopy.unknownFields = copy.unknownFields
+    }
 
-	private object builderCopy {
-	    var unknownFields: ByteArray? = null
-	}
+    private object builderCopy {
+        var unknownFields: ByteArray? = null
+    }
 
-	fun build(): Empty = Empty(
-    	builderCopy.unknownFields
-	)
-	
+    fun build(): Empty = Empty(
+        builderCopy.unknownFields
+    )
+    
     
 }

@@ -7,23 +7,23 @@ class DurationBuilder {
     constructor()
 
     constructor(copy: Duration) {
-	    builderCopy.seconds = copy.seconds
-	    builderCopy.nanos = copy.nanos
-	    builderCopy.unknownFields = copy.unknownFields
-	}
+        builderCopy.seconds = copy.seconds
+        builderCopy.nanos = copy.nanos
+        builderCopy.unknownFields = copy.unknownFields
+    }
 
-	private object builderCopy {
-	    var seconds: Long = 0L
-	    var nanos: Int = 0
-	    var unknownFields: ByteArray? = null
-	}
+    private object builderCopy {
+        var seconds: Long = 0L
+        var nanos: Int = 0
+        var unknownFields: ByteArray? = null
+    }
 
-	fun build(): Duration = Duration(
-    	builderCopy.seconds,
-    	builderCopy.nanos,
-    	builderCopy.unknownFields
-	)
-	
+    fun build(): Duration = Duration(
+        builderCopy.seconds,
+        builderCopy.nanos,
+        builderCopy.unknownFields
+    )
+    
     
     var seconds: Long
         set(value) {

@@ -7,23 +7,23 @@ class TimestampBuilder {
     constructor()
 
     constructor(copy: Timestamp) {
-	    builderCopy.seconds = copy.seconds
-	    builderCopy.nanos = copy.nanos
-	    builderCopy.unknownFields = copy.unknownFields
-	}
+        builderCopy.seconds = copy.seconds
+        builderCopy.nanos = copy.nanos
+        builderCopy.unknownFields = copy.unknownFields
+    }
 
-	private object builderCopy {
-	    var seconds: Long = 0L
-	    var nanos: Int = 0
-	    var unknownFields: ByteArray? = null
-	}
+    private object builderCopy {
+        var seconds: Long = 0L
+        var nanos: Int = 0
+        var unknownFields: ByteArray? = null
+    }
 
-	fun build(): Timestamp = Timestamp(
-    	builderCopy.seconds,
-    	builderCopy.nanos,
-    	builderCopy.unknownFields
-	)
-	
+    fun build(): Timestamp = Timestamp(
+        builderCopy.seconds,
+        builderCopy.nanos,
+        builderCopy.unknownFields
+    )
+    
     
     var seconds: Long
         set(value) {
