@@ -166,7 +166,7 @@ func (c context) Name(node pgs.Node) pgs.Name {
 
 		return pgs.Name(strings.ToUpper(en.Name().String()))
 	case pgs.Service: // always return the server name
-		return PGGUpperCamelCase(en.Name() + "Service")
+		return PGGUpperCamelCase(en.Name())
 	case pgs.Entity: // any other entity should be just upper-camel-cased
 		return PGGLowerCamelCase(en.Name())
 	default:

@@ -1,20 +1,51 @@
 package main
 
 import (
-	pgs "github.com/lyft/protoc-gen-star"
-	)
+    pgs "github.com/lyft/protoc-gen-star"
+    )
 
-	func main() {
-	pgs.Init(
-		pgs.DebugEnv("DEBUG"),
-	).RegisterModule(
-		RenderTemplate(encoderTpl, ".encode.kt"),
-		RenderTemplate(decoderTpl, ".decode.kt"),
-		RenderTemplate(dataClassTpl, ".data.kt"),
-		RenderTemplate(builderTpl, ".builder.kt"),
-	).Render()
+    func main() {
+    pgs.Init(
+        pgs.DebugEnv("DEBUG"),
+    ).RegisterModule(
+        RenderTemplate(encoderTpl, ".encode.kt"),
+        RenderTemplate(decoderTpl, ".decode.kt"),
+        RenderTemplate(dataClassTpl, ".data.kt"),
+        RenderTemplate(builderTpl, ".builder.kt"),
+        RenderTemplate(serviceTpl, ".service.kt"),
+    ).Render()
 }
 
+const serviceTpl = `package {{ package . }}
+
+import dev.mpr.grpc.protobuf.tools.*
+import dev.mpr.grpc.protobuf.tools.LinkedByteArray
+import dev.mpr.grpc.protobuf.tools.MutableLinkedByteArray
+import dev.mpr.grpc.protobuf.tools.ProtobufOutputStream
+import dev.mpr.grpc.protobuf.tools.ScopedProtobufReader
+import gg.roll.common.network.RpcClient
+import kotlinx.coroutines.*
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.channelFlow
+import kotlinx.coroutines.flow.flow
+{{ range imports . }}
+import {{ . }}
+import {{ fullyQualifiedName . }}{{ end }}
+{{- define "service" }}
+interface {{ name . }} {
+    {{ range .Methods }}
+    {{ if .ServerStreaming }}{{ else }}suspend {{ end }}fun {{ name . }}(request: {{ if .ClientStreaming }}Flow<{{ name .Input }}>{{ else }}{{ name .Input }}{{- end }}): {{ if .ServerStreaming }}Flow<{{ name .Output }}>{{ else }}{{ name .Output }}{{- end }}
+    {{- end }}
+}
+
+class {{ name . }}Rpc(private val rpc: RpcClient): {{ name . }}, GrpcService(rpc, "{{ package . }}", "{{ name . }}") {
+    {{ range .Methods }}
+    override {{ if .ServerStreaming }}{{ else }}suspend {{ end }}fun {{ name . }}(request: {{ if .ClientStreaming }}Flow<{{ name .Input }}>{{ else }}{{ name .Input }}{{- end }}): {{ if .ServerStreaming }}Flow<{{ name .Output }}>{{ else }}{{ name .Output }}{{- end }} = clientUnaryServerUnary("{{ .Name }}", request, {{ name .Input }}::writeTo, {{ name .Output }}.Companion::readFrom)
+    {{- end }}
+}
+{{ end }}
+{{ range .Services }}{{ template "service" . }}{{ end -}}
+`
 const decoderTpl = `package {{ package . }}
 {{ range imports . }}
 import {{ . }}
@@ -24,28 +55,28 @@ import dev.mpr.grpc.protobuf.tools.ProtobufReader
 fun {{ fullyQualifiedName . }}.Companion.readFrom(reader: ProtobufReader) = build {
     while (reader.nextField()) {
         when (reader.currentFieldNumber) {
-	    {{ range .OneOfs }}
-	        {{- range .Fields }}
-	        {{- if .Type.IsEmbed }}
-	        {{ .Descriptor.Number }} -> {
-	            {{ .OneOf.Descriptor.Name }} {
-	                {{ name . }} = reader.readField { fieldReader ->
-	                    {{ name .Type.Embed }}.readFrom(fieldReader)
-	                }
+        {{ range .OneOfs }}
+            {{- range .Fields }}
+            {{- if .Type.IsEmbed }}
+            {{ .Descriptor.Number }} -> {
+                {{ .OneOf.Descriptor.Name }} {
+                    {{ name . }} = reader.readField { fieldReader ->
+                        {{ name .Type.Embed }}.readFrom(fieldReader)
+                    }
                 }
             }
             {{ else if .Type.IsEnum }}
             {{ else if isBytes . }}
-	        {{- else }}
-	        {{ .Descriptor.Number }} -> {
-	            {{ .OneOf.Descriptor.Name }} {
+            {{- else }}
+            {{ .Descriptor.Number }} -> {
+                {{ .OneOf.Descriptor.Name }} {
                     {{ name . }} = reader.{{ readerMethod .Type.ProtoType }}()
                 }
             }
             {{- end }}
             {{ end }}
         {{ end }}
-    	{{- range .NonOneOfFields }}
+        {{- range .NonOneOfFields }}
             {{ if .Type.IsEmbed }}{{ .Descriptor.Number }} -> {
                 {{ name . }} = reader.readField { fieldReader ->
                     {{ type . }}.readFrom(fieldReader)
