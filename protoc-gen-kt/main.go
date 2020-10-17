@@ -18,12 +18,12 @@ import (
 
 const serviceTpl = `package {{ package . }}
 
-import dev.mpr.grpc.protobuf.tools.*
-import dev.mpr.grpc.protobuf.tools.LinkedByteArray
-import dev.mpr.grpc.protobuf.tools.MutableLinkedByteArray
-import dev.mpr.grpc.protobuf.tools.ProtobufOutputStream
-import dev.mpr.grpc.protobuf.tools.ScopedProtobufReader
-import gg.roll.common.network.RpcClient
+import gg.roll.common.proto.tools.*
+import gg.roll.common.proto.tools.LinkedByteArray
+import gg.roll.common.proto.tools.MutableLinkedByteArray
+import gg.roll.common.proto.tools.ProtobufOutputStream
+import gg.roll.common.proto.tools.ScopedProtobufReader
+import gg.roll.common.net.RpcClient
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.channelFlow
@@ -50,9 +50,18 @@ const decoderTpl = `package {{ package . }}
 {{ range imports . }}
 import {{ . }}
 import {{ fullyQualifiedName . }}.Companion.readFrom{{ end }}
-import dev.mpr.grpc.protobuf.tools.ProtobufReader
+import gg.roll.common.proto.tools.ProtobufReader
+import gg.roll.common.proto.tools.ProtobufInputStream
 {{- define "message" }}
-fun {{ fullyQualifiedName . }}.Companion.readFrom(reader: ProtobufReader) = build {
+fun {{ fullyQualifiedName . }}.Companion.fromByteArray(bytes: ByteArray): {{ fullyQualifiedName . }} = ProtobufInputStream()
+    .let { stream ->
+        stream.addBytes(bytes)
+        stream.read {
+            {{ fullyQualifiedName . }}.readFrom(it)
+        }
+    }
+
+fun {{ fullyQualifiedName . }}.Companion.readFrom(reader: ProtobufReader) = {{ builderName . }}().apply {
     while (reader.nextField()) {
         when (reader.currentFieldNumber) {
         {{ range .OneOfs }}
@@ -67,6 +76,11 @@ fun {{ fullyQualifiedName . }}.Companion.readFrom(reader: ProtobufReader) = buil
             }
             {{ else if .Type.IsEnum }}
             {{ else if isBytes . }}
+            {{ .Descriptor.Number }} -> {
+                {{ .OneOf.Descriptor.Name }} {
+                    {{ name . }} = reader.readBytes()
+                }
+            }
             {{- else }}
             {{ .Descriptor.Number }} -> {
                 {{ .OneOf.Descriptor.Name }} {
@@ -85,13 +99,13 @@ fun {{ fullyQualifiedName . }}.Companion.readFrom(reader: ProtobufReader) = buil
             {{ else if .Type.IsMap }}
             {{ else if .Type.IsRepeated }}
             {{ else if .Type.IsEnum }}
-            {{ else if isBytes . }}
+            {{ else if isBytes . }}{{ .Descriptor.Number }} -> { {{ name . }} = reader.readBytes() }
             {{ else }}{{ .Descriptor.Number }} -> { {{ name . }} = reader.{{ readerMethod .Type.ProtoType }}() }
             {{ end }}
         {{- end }}
         }
     }
-}
+}.build()
 {{ end }}
 {{ range .AllMessages }}{{ template "message" . }}{{ end -}}
 `
@@ -100,8 +114,17 @@ const encoderTpl = `package {{ package . }}
 {{ range imports . }}
 import {{ . }}
 import {{ . }}.writeTo{{ end }}
-import dev.mpr.grpc.protobuf.tools.ProtobufWriter
+import gg.roll.common.proto.tools.ProtobufWriter
+import gg.roll.common.proto.tools.ProtobufOutputStream
 {{- define "message" }}
+fun {{ fullyQualifiedName . }}.toByteArray() = ProtobufOutputStream()
+    .apply {
+        write {
+            this@toByteArray.writeTo(it)
+        }
+    }
+    .toByteArray()
+
 fun {{ fullyQualifiedName . }}.writeTo(writer: ProtobufWriter) {
     {{ range .OneOfs }}
     when ({{ .Descriptor.Name }}) {
@@ -161,15 +184,7 @@ data class {{ simpleName . }}(
         data class {{ name . }}(val {{ name . }}: {{ typeNonNull . }}) : OneOf{{ upperCamel .OneOf.Descriptor.Name }}(){{ end }}
     }
     {{ end }}
-    companion object {
-        fun build(builder: {{ builderName . }}.() -> Unit): {{ name . }} {
-            return {{ builderName . }}().apply(builder).build()
-        }
-    }
-
-    fun copyBuild(builder: {{ builderName . }}.() -> Unit): {{ name . }} {
-        return {{ builderName . }}(this).apply(builder).build()
-    }
+    companion object
 }
 {{ end }}
 {{ range .Messages }}{{ template "message" . }}{{ end -}}
@@ -180,6 +195,14 @@ const builderTpl = `package {{ package . }}
 import {{ . }}
 import {{ . }}Builder{{ end }}
 {{- define "message" }}
+
+fun {{ name . }}(builder: {{ builderName . }}.() -> Unit): {{ name . }} {
+    return {{ builderName . }}().apply(builder).build()
+}
+
+fun {{ fullyQualifiedName . }}.copy(builder: {{ builderName . }}.() -> Unit): {{ name . }} {
+    return {{ builderName . }}(this).apply(builder).build()
+}
 
 class {{ builderName . }} {
     constructor()

@@ -246,17 +246,17 @@ func (c context) ReaderMethod(t pgs.ProtoType) string {
 	case pgs.Int64T:
 		return "readInt64"
 	case pgs.SInt64:
-		return "readInt64"
+		return "readSInt64"
 	case pgs.SFixed64:
-		return "readInt64"
+		return "readFixedInt64"
 	case pgs.Fixed64T:
 		return "readFixedInt64"
 	case pgs.UInt64T:
 		return "readUInt64"
 	case pgs.Int32T:
-		return "readFixedInt32"
+		return "readInt32"
 	case pgs.SInt32:
-		return "readFixed32"
+		return "readSInt32"
 	case pgs.SFixed32:
 		return "readFixedInt32"
 	case pgs.UInt32T:
