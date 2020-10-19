@@ -32,15 +32,15 @@ import kotlinx.coroutines.flow.flow
 import {{ . }}
 import {{ fullyQualifiedName . }}{{ end }}
 {{- define "service" }}
-interface {{ name . }} {
+interface {{ name . }}Service {
     {{ range .Methods }}
     {{ if .ServerStreaming }}{{ else }}suspend {{ end }}fun {{ name . }}(request: {{ if .ClientStreaming }}Flow<{{ name .Input }}>{{ else }}{{ name .Input }}{{- end }}): {{ if .ServerStreaming }}Flow<{{ name .Output }}>{{ else }}{{ name .Output }}{{- end }}
     {{- end }}
 }
 
-class {{ name . }}Rpc(private val rpc: RpcClient): {{ name . }}, GrpcService(rpc, "{{ package . }}", "{{ name . }}") {
+class {{ name . }}ServiceRpc(rpc: RpcClient): {{ name . }}Service, GrpcService(rpc, "{{ package . }}", "{{ name . }}") {
     {{ range .Methods }}
-    override {{ if .ServerStreaming }}{{ else }}suspend {{ end }}fun {{ name . }}(request: {{ if .ClientStreaming }}Flow<{{ name .Input }}>{{ else }}{{ name .Input }}{{- end }}): {{ if .ServerStreaming }}Flow<{{ name .Output }}>{{ else }}{{ name .Output }}{{- end }} = clientUnaryServerUnary("{{ .Name }}", request, {{ name .Input }}::writeTo, {{ name .Output }}.Companion::readFrom)
+    override {{ if .ServerStreaming }}{{ else }}suspend {{ end }}fun {{ name . }}(request: {{ if .ClientStreaming }}Flow<{{ name .Input }}>{{ else }}{{ name .Input }}{{- end }}): {{ if .ServerStreaming }}Flow<{{ name .Output }}>{{ else }}{{ name .Output }}{{- end }} = client{{ if .ClientStreaming }}Stream{{ else }}Unary{{- end }}Server{{ if .ServerStreaming }}Stream{{ else }}Unary{{- end }}("{{ .Name }}", request, {{ name .Input }}::writeTo, {{ name .Output }}.Companion::readFrom)
     {{- end }}
 }
 {{ end }}
@@ -97,8 +97,15 @@ fun {{ fullyQualifiedName . }}.Companion.readFrom(reader: ProtobufReader) = {{ b
                 }
             }
             {{ else if .Type.IsMap }}
-            {{ else if .Type.IsRepeated }}
-            {{ else if .Type.IsEnum }}
+            {{ else if .Type.IsRepeated }}{{ .Descriptor.Number }} -> { {{ name . }} = {{ name . }} + reader.readField { fieldReader ->
+                    {{ name .Type.Element.Embed }}.readFrom(fieldReader)
+                }
+            }
+            {{ else if .Type.IsEnum }}{{ .Descriptor.Number }} -> {
+                val enumValue = reader.readInt32()
+
+                {{ name . }} = {{ type . }}.values().first { it.value == enumValue }
+            }
             {{ else if isBytes . }}{{ .Descriptor.Number }} -> { {{ name . }} = reader.readBytes() }
             {{ else }}{{ .Descriptor.Number }} -> { {{ name . }} = reader.{{ readerMethod .Type.ProtoType }}() }
             {{ end }}
