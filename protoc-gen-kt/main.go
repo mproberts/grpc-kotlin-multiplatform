@@ -153,6 +153,11 @@ fun {{ fullyQualifiedName . }}.writeTo(writer: ProtobufWriter) {
     }
     {{ else if .Type.IsMap }}
     {{ else if .Type.IsRepeated }}
+    {{ name . }}.forEach { value ->
+        writer.encode({{ .Descriptor.Number }}) {
+            value.writeTo(this)
+        }
+    }
     {{ else if .Type.IsEnum }}
     if ({{ name . }} != {{ default . }}) writer.encode({{ .Descriptor.Number }}, {{ name . }}.ordinal){{ else if isBytes . }}
     if ({{ name . }}.isNotEmpty()) writer.encode({{ .Descriptor.Number }}, {{ name . }}){{ else }}
