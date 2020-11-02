@@ -73,6 +73,19 @@ func (c context) SimpleName(node pgs.Node) pgs.Name {
 	}
 }
 
+func (c context) OriginalName(node pgs.Node) pgs.Name {
+	switch en := node.(type) {
+	case pgs.Message:
+		return en.Name()
+	case pgs.Enum:
+		return en.Name()
+	case pgs.Entity:
+		return en.Name()
+	default:
+		panic("unknown type")
+	}
+}
+
 func (c context) BuilderName(node pgs.Node) pgs.Name {
 	return pgs.Name(c.SimpleName(node) + "Builder")
 }
@@ -93,6 +106,10 @@ func (c context) FullyQualifiedName(node pgs.Node) pgs.Name {
 	default:
 		panic("unknown type")
 	}
+}
+
+func (c context) EscapedFullyQualifiedName(node pgs.Node) string {
+	return strings.ReplaceAll(c.FullyQualifiedName(node).String(), ".", "__")
 }
 
 func (c context) FieldTypeNameNonNull(fte pgs.FieldTypeElem) TypeName {

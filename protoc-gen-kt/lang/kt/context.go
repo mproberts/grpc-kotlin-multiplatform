@@ -29,6 +29,8 @@ type Context interface {
 	Name(node pgs.Node) pgs.Name
 
 	SimpleName(node pgs.Node) pgs.Name
+	
+	OriginalName(node pgs.Node) pgs.Name
 
 	FieldTypeName(ft pgs.FieldTypeElem) TypeName
 
@@ -45,6 +47,8 @@ type Context interface {
 	IsBytes(field pgs.Field) bool
 
 	FullyQualifiedName(node pgs.Node) pgs.Name
+
+	EscapedFullyQualifiedName(node pgs.Node) string
 
 	// ServerName returns the name of the server interface for the Service.
 	ServerName(service pgs.Service) pgs.Name

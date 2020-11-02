@@ -23,16 +23,36 @@ import gg.roll.common.proto.tools.LinkedByteArray
 import gg.roll.common.proto.tools.MutableLinkedByteArray
 import gg.roll.common.proto.tools.ProtobufOutputStream
 import gg.roll.common.proto.tools.ScopedProtobufReader
+import gg.roll.common.proto.tools.GrpcService
 import gg.roll.common.net.RpcClient
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.channelFlow
 import kotlinx.coroutines.flow.flow
+import kotlin.js.JsName
 {{ range imports . }}
 import {{ . }}
 import {{ fullyQualifiedName . }}{{ end }}
 {{- define "service" }}
 interface {{ name . }}Service {
+
+    companion object {
+        val Descriptor = GrpcService.ServiceDescriptor(
+            "{{ package . }}", "{{ name . }}", listOf(
+                {{ range .Methods }}
+                GrpcService.MethodDescriptor<{{ name .Input }}, {{ name .Output }}>(
+                    "{{ originalName . }}",
+                    {{ name .Input }}.Companion::readFrom,
+                    {{ name .Output }}::writeTo,
+                    {{ if .ClientStreaming }}true{{ else }}false{{ end }},
+                    {{ if .ServerStreaming }}true{{ else }}false{{ end }}
+                ),
+                {{- end }}
+            )
+        )
+    }
+
+
     {{ range .Methods }}
     {{ if .ServerStreaming }}{{ else }}suspend {{ end }}fun {{ name . }}(request: {{ if .ClientStreaming }}Flow<{{ name .Input }}>{{ else }}{{ name .Input }}{{- end }}): {{ if .ServerStreaming }}Flow<{{ name .Output }}>{{ else }}{{ name .Output }}{{- end }}
     {{- end }}
@@ -52,6 +72,7 @@ import {{ . }}
 import {{ fullyQualifiedName . }}.Companion.readFrom{{ end }}
 import gg.roll.common.proto.tools.ProtobufReader
 import gg.roll.common.proto.tools.ProtobufInputStream
+import kotlin.js.JsName
 {{- define "message" }}
 fun {{ fullyQualifiedName . }}.Companion.fromByteArray(bytes: ByteArray): {{ fullyQualifiedName . }} = ProtobufInputStream()
     .let { stream ->
@@ -61,7 +82,7 @@ fun {{ fullyQualifiedName . }}.Companion.fromByteArray(bytes: ByteArray): {{ ful
         }
     }
 
-fun {{ fullyQualifiedName . }}.Companion.readFrom(reader: ProtobufReader) = {{ builderName . }}().apply {
+fun {{ fullyQualifiedName . }}.Companion.readFrom(reader: ProtobufReader): {{ fullyQualifiedName . }} = {{ builderName . }}().apply {
     while (reader.nextField()) {
         when (reader.currentFieldNumber) {
         {{ range .OneOfs }}
@@ -123,7 +144,9 @@ import {{ . }}
 import {{ . }}.writeTo{{ end }}
 import gg.roll.common.proto.tools.ProtobufWriter
 import gg.roll.common.proto.tools.ProtobufOutputStream
+import kotlin.js.JsName
 {{- define "message" }}
+@JsName("{{ escapedFullyQualifiedName . }}ToByteArray")
 fun {{ fullyQualifiedName . }}.toByteArray() = ProtobufOutputStream()
     .apply {
         write {
@@ -132,14 +155,15 @@ fun {{ fullyQualifiedName . }}.toByteArray() = ProtobufOutputStream()
     }
     .toByteArray()
 
+@JsName("{{ escapedFullyQualifiedName . }}WriteTo")
 fun {{ fullyQualifiedName . }}.writeTo(writer: ProtobufWriter) {
     {{ range .OneOfs }}
     when ({{ .Descriptor.Name }}) {
         {{- range .Fields }}
         {{- if .Type.IsEmbed }}
-        is {{ name .Message }}.OneOf{{ upperCamel .OneOf.Descriptor.Name }}.{{ name . }} -> writer.encode({{ .Descriptor.Number }}) { {{ .OneOf.Descriptor.Name }}.{{ name . }}.writeTo(this) }
+        is {{ name .Message }}.OneOf{{ upperCamel .OneOf.Descriptor.Name }}.{{ name . }} -> writer.encode({{ .Descriptor.Number }}) { ({{ .OneOf.Descriptor.Name }} as {{ name .Message }}.OneOf{{ upperCamel .OneOf.Descriptor.Name }}.{{ name . }}).{{ name . }}.writeTo(this) }
         {{- else }}
-        is {{ name .Message }}.OneOf{{ upperCamel .OneOf.Descriptor.Name }}.{{ name . }} -> writer.encode({{ .Descriptor.Number }}, {{ .OneOf.Descriptor.Name }}.{{ name . }})
+        is {{ name .Message }}.OneOf{{ upperCamel .OneOf.Descriptor.Name }}.{{ name . }} -> writer.encode({{ .Descriptor.Number }}, ({{ .OneOf.Descriptor.Name }} as {{ name .Message }}.OneOf{{ upperCamel .OneOf.Descriptor.Name }}.{{ name . }}).{{ name . }})
         {{- end }}
         {{ end }}
     }

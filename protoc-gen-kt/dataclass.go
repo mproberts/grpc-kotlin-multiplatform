@@ -34,8 +34,10 @@ func (p *TemplateGenPlugin) InitContext(c pgs.BuildContext) {
 
 	funcs["builderName"] = p.ctx.BuilderName
 	funcs["simpleName"] = p.ctx.SimpleName
+	funcs["originalName"] = p.ctx.OriginalName
 	funcs["qualifiedName"] = p.ctx.QualifiedName
 	funcs["fullyQualifiedName"] = p.ctx.FullyQualifiedName
+	funcs["escapedFullyQualifiedName"] = p.ctx.EscapedFullyQualifiedName
 	funcs["package"] = p.ctx.PackageName
 	funcs["upperCamel"] = generator.CamelCase
 	funcs["lowerCamel"] = generator.CamelCase
