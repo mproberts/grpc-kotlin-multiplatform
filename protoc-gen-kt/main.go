@@ -220,7 +220,47 @@ data class {{ simpleName . }}(
         data class {{ name . }}(val {{ name . }}: {{ typeNonNull . }}) : OneOf{{ upperCamel .OneOf.Descriptor.Name }}(){{ end }}
     }
     {{ end }}
-    companion object
+    companion object {}
+
+    override fun equals(other: Any?): Boolean {
+        if (this === other) return true
+        if (other == null || this::class != other::class) return false
+
+        other as {{ simpleName .}}
+
+        {{- range $index, $_ := .OneOfs }}
+        if ({{ .Descriptor.Name }} != other.{{ .Descriptor.Name }}) return false {{ end }}
+        {{- range $index, $_ := .NonOneOfFields }}
+
+        {{ if isBytes . -}}
+        if (!{{ name . }}.contentEquals(other.{{ name . }})) return false
+        {{ else -}}
+        if ({{ name . }} != other.{{ name . }}) return false
+        {{ end }}{{ end }}
+
+        if (unknownFields != null) {
+            if (other.unknownFields == null) return false
+            if (!unknownFields.contentEquals(other.unknownFields)) return false
+        } else if (other.unknownFields != null) return false
+
+        return true
+    }
+
+    override fun hashCode(): Int {
+        var result = 0
+
+        {{- range $index, $_ := .OneOfs }}
+        result = 31 * result + ({{ .Descriptor.Name }}?.hashCode() ?: 0){{ end }}
+        {{- range $index, $_ := .NonOneOfFields }}
+        {{ if isBytes . -}}
+        result = 31 * result + {{ name . }}.contentHashCode()
+        {{ else -}}
+        result = 31 * result + ({{ name . }}?.hashCode() ?: 0)
+        {{ end }}{{ end }}
+
+        result = 31 * result + (unknownFields?.contentHashCode() ?: 0)
+        return result
+    }
 }
 {{ end }}
 {{ range .Messages }}{{ template "message" . }}{{ end -}}
