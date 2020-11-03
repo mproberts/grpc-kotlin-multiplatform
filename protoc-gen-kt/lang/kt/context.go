@@ -47,6 +47,8 @@ type Context interface {
 	IsBytes(field pgs.Field) bool
 
 	FullyQualifiedName(node pgs.Node) pgs.Name
+	
+	FullyQualifiedCompanionName(node pgs.Node) pgs.Name
 
 	EscapedFullyQualifiedName(node pgs.Node) string
 

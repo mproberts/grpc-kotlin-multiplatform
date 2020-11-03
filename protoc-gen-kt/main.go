@@ -52,7 +52,6 @@ interface {{ name . }}Service {
         )
     }
 
-
     {{ range .Methods }}
     {{ if .ServerStreaming }}{{ else }}suspend {{ end }}fun {{ name . }}(request: {{ if .ClientStreaming }}Flow<{{ name .Input }}>{{ else }}{{ name .Input }}{{- end }}): {{ if .ServerStreaming }}Flow<{{ name .Output }}>{{ else }}{{ name .Output }}{{- end }}
     {{- end }}
@@ -272,7 +271,7 @@ import {{ . }}
 import {{ . }}Builder{{ end }}
 {{- define "message" }}
 
-fun {{ name . }}(builder: {{ builderName . }}.() -> Unit): {{ name . }} {
+fun {{ fullyQualifiedCompanionName . }}(builder: {{ builderName . }}.() -> Unit): {{ name . }} {
     return {{ builderName . }}().apply(builder).build()
 }
 

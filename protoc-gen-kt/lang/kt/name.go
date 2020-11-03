@@ -108,6 +108,26 @@ func (c context) FullyQualifiedName(node pgs.Node) pgs.Name {
 	}
 }
 
+func (c context) FullyQualifiedCompanionName(node pgs.Node) pgs.Name {
+	// Message or Enum
+	type ChildEntity interface {
+		Name() pgs.Name
+		Parent() pgs.ParentEntity
+	}
+
+	switch en := node.(type) {
+	case ChildEntity: // Message or Enum types, which may be nested
+		if p, ok := en.Parent().(pgs.Message); ok {
+			return pgs.Name(c.Name(p) + ".Companion." + en.Name())
+		}
+		return PGGUpperCamelCase(en.Name())
+	case pgs.Entity: // any other entity should be just upper-camel-cased
+		return PGGUpperCamelCase(en.Name())
+	default:
+		panic("unreachable")
+	}
+}
+
 func (c context) EscapedFullyQualifiedName(node pgs.Node) string {
 	return strings.ReplaceAll(c.FullyQualifiedName(node).String(), ".", "__")
 }
