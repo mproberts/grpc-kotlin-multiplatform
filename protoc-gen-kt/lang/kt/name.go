@@ -87,7 +87,7 @@ func (c context) OriginalName(node pgs.Node) pgs.Name {
 }
 
 func (c context) BuilderName(node pgs.Node) pgs.Name {
-	return pgs.Name(c.SimpleName(node) + "Builder")
+	return pgs.Name(strings.ReplaceAll(c.Name(node).String(), ".", "_") + "Builder")
 }
 
 func (c context) QualifiedName(node pgs.Node) pgs.Name {
