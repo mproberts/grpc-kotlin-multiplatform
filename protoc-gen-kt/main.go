@@ -88,24 +88,18 @@ fun {{ fullyQualifiedName . }}.Companion.readFrom(reader: ProtobufReader): {{ fu
             {{- range .Fields }}
             {{- if .Type.IsEmbed }}
             {{ .Descriptor.Number }} -> {
-                {{ .OneOf.Descriptor.Name }} {
-                    {{ name . }} = reader.readField { fieldReader ->
-                        {{ name .Type.Embed }}.readFrom(fieldReader)
-                    }
+                {{ .OneOf.Descriptor.Name }}.{{ name . }} = reader.readField { fieldReader ->
+                    {{ name .Type.Embed }}.readFrom(fieldReader)
                 }
             }
             {{ else if .Type.IsEnum }}
             {{ else if isBytes . }}
             {{ .Descriptor.Number }} -> {
-                {{ .OneOf.Descriptor.Name }} {
-                    {{ name . }} = reader.readBytes()
-                }
+                {{ .OneOf.Descriptor.Name }}.{{ name . }} = reader.readBytes()
             }
             {{- else }}
             {{ .Descriptor.Number }} -> {
-                {{ .OneOf.Descriptor.Name }} {
-                    {{ name . }} = reader.{{ readerMethod .Type.ProtoType }}()
-                }
+                {{ .OneOf.Descriptor.Name }}.{{ name . }} = reader.{{ readerMethod .Type.ProtoType }}()
             }
             {{- end }}
             {{ end }}
@@ -160,9 +154,9 @@ fun {{ fullyQualifiedName . }}.writeTo(writer: ProtobufWriter) {
     when ({{ .Descriptor.Name }}) {
         {{- range .Fields }}
         {{- if .Type.IsEmbed }}
-        is {{ name .Message }}.OneOf{{ upperCamel .OneOf.Descriptor.Name }}.{{ name . }} -> writer.encode({{ .Descriptor.Number }}) { ({{ .OneOf.Descriptor.Name }} as {{ name .Message }}.OneOf{{ upperCamel .OneOf.Descriptor.Name }}.{{ name . }}).{{ name . }}.writeTo(this) }
+        is {{ name .Message }}.OneOf{{ upperCamel .OneOf.Descriptor.Name }}.{{ name . }} -> writer.encode({{ .Descriptor.Number }}) { ({{ .OneOf.Descriptor.Name }} as {{ name .Message }}.OneOf{{ upperCamel .OneOf.Descriptor.Name }}.{{ name . }}).value.writeTo(this) }
         {{- else }}
-        is {{ name .Message }}.OneOf{{ upperCamel .OneOf.Descriptor.Name }}.{{ name . }} -> writer.encode({{ .Descriptor.Number }}, ({{ .OneOf.Descriptor.Name }} as {{ name .Message }}.OneOf{{ upperCamel .OneOf.Descriptor.Name }}.{{ name . }}).{{ name . }})
+        is {{ name .Message }}.OneOf{{ upperCamel .OneOf.Descriptor.Name }}.{{ name . }} -> writer.encode({{ .Descriptor.Number }}, ({{ .OneOf.Descriptor.Name }} as {{ name .Message }}.OneOf{{ upperCamel .OneOf.Descriptor.Name }}.{{ name . }}).value)
         {{- end }}
         {{ end }}
     }
@@ -214,9 +208,13 @@ data class {{ simpleName . }}(
     {{- range .Enums }}{{ include "enum" . | indent 4 }}{{ end }}
 
     {{- range $index, $_ := .OneOfs }}
-    sealed class OneOf{{ upperCamel .Descriptor.Name }} {
+    sealed class OneOf{{ upperCamel .Descriptor.Name }}(protected open val value: Any) {
         {{- range .Fields }}
-        data class {{ name . }}(val {{ name . }}: {{ typeNonNull . }}) : OneOf{{ upperCamel .OneOf.Descriptor.Name }}(){{ end }}
+        data class {{ name . }}(public override val value: {{ typeNonNull . }}) : OneOf{{ upperCamel .OneOf.Descriptor.Name }}(value){{ end }}
+
+        fun <V> getOrNull(): V? {
+            return this.value as? V
+        }
     }
     {{ end }}
     companion object {}
@@ -308,15 +306,17 @@ class {{ builderName . }} {
         builderCopy.unknownFields
     )
     {{ range .OneOfs }}
-    
+
+    val {{ name . }} = OneOf{{ name . }}Builder()
+
     inner class OneOf{{ name . }}Builder {
         {{- range .Fields }}
         var {{ name . }}: {{ typeNonNull . }}?
             set(value) {
                 builderCopy.{{ .OneOf.Descriptor.Name }} = value?.let { {{ name .OneOf.Message }}.OneOf{{ upperCamel .OneOf.Descriptor.Name }}.{{ name . }}(it) }
             }
-
-            get() = (builderCopy.{{ .OneOf.Descriptor.Name }} as? {{ name .OneOf.Message }}.OneOf{{ upperCamel .OneOf.Descriptor.Name }}.{{ name . }})?.{{ name . }}
+    
+            get() = (builderCopy.{{ .OneOf.Descriptor.Name }} as? {{ name .OneOf.Message }}.OneOf{{ upperCamel .OneOf.Descriptor.Name }}.{{ name . }})?.value
             {{ if .Type.IsEmbed }}
             fun {{ name . }}(builder: {{ .Type.Embed | builderName }}.() -> Unit) {
                 builderCopy.{{ .OneOf.Descriptor.Name }} = {{ .Type.Embed | builderName }}().apply(builder).build().let { {{ name .OneOf.Message }}.OneOf{{ upperCamel .OneOf.Descriptor.Name }}.{{ name . }}(it) }
@@ -324,9 +324,9 @@ class {{ builderName . }} {
         {{ end }}
     }
 
-    fun {{ name . }}(builder: OneOf{{ name . }}Builder.() -> Unit) {
-        OneOf{{ name . }}Builder().apply(builder)
-    }
+    // fun {{ name . }}(builder: OneOf{{ name . }}Builder.() -> Unit) {
+    //     OneOf{{ name . }}Builder().apply(builder)
+    // }
     {{ end }}
     {{ range .NonOneOfFields }}
     var {{ name . }}: {{ type . }}
