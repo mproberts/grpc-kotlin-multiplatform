@@ -86,6 +86,23 @@ func (c context) OriginalName(node pgs.Node) pgs.Name {
 	}
 }
 
+func (c context) StripLastSegment(something string) string {
+	remainder := ""
+
+	components := strings.Split(something, ".")
+	components = components[:len(components) - 1]
+
+	for _, component := range components {
+		if len(remainder) > 0 {
+			remainder = remainder + "." + component
+		} else {
+			remainder = component
+		}
+	}
+
+	return remainder
+}
+
 func (c context) BuilderName(node pgs.Node) pgs.Name {
 	return pgs.Name(strings.ReplaceAll(c.Name(node).String(), ".", "_") + "Builder")
 }

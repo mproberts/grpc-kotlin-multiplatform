@@ -31,8 +31,7 @@ import kotlinx.coroutines.flow.channelFlow
 import kotlinx.coroutines.flow.flow
 import kotlin.js.JsName
 {{ range imports . }}
-import {{ . }}
-import {{ fullyQualifiedName . }}{{ end }}
+import {{ . }}{{ end }}
 {{- define "service" }}
 interface {{ name . }}Service {
 
@@ -68,7 +67,7 @@ class {{ name . }}ServiceRpc(rpc: RpcClient): {{ name . }}Service, GrpcService(r
 const decoderTpl = `package {{ package . }}
 {{ range imports . }}
 import {{ . }}
-import {{ fullyQualifiedName . }}.Companion.readFrom{{ end }}
+import {{ stripLastSegment . }}.readFrom{{ end }}
 import gg.roll.common.proto.tools.ProtobufReader
 import gg.roll.common.proto.tools.ProtobufInputStream
 import kotlin.js.JsName
@@ -134,7 +133,7 @@ fun {{ fullyQualifiedName . }}.Companion.readFrom(reader: ProtobufReader): {{ fu
 const encoderTpl = `package {{ package . }}
 {{ range imports . }}
 import {{ . }}
-import {{ . }}.writeTo{{ end }}
+import {{ stripLastSegment . }}.writeTo{{ end }}
 import gg.roll.common.proto.tools.ProtobufWriter
 import gg.roll.common.proto.tools.ProtobufOutputStream
 import kotlin.js.JsName
