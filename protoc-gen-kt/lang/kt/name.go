@@ -62,6 +62,45 @@ func (c context) Imports(f pgs.File) []string {
 	return uniqueStrings(imports)
 }
 
+func (c context) PackageImports(f pgs.File) []string {
+	var imports []string	
+
+	for _, msg := range f.AllMessages() {
+		for _, field := range msg.Fields() {
+			if field.Type().IsEmbed() {
+				packageName := c.PackageName(field.Type().Embed()).String()
+				fieldTypeName := c.FullyQualifiedName(field.Type().Embed()).String()
+
+				if !strings.HasPrefix(fieldTypeName, c.PackageName(f).String()) {
+					imports = append(imports, packageName)
+				}
+			} else if field.Type().IsEnum() {
+			}
+		}
+	}
+
+	return uniqueStrings(imports)
+}
+
+func (c context) BuilderImports(f pgs.File) []string {
+	var imports []string	
+
+	for _, msg := range f.AllMessages() {
+		for _, field := range msg.Fields() {
+			if field.Type().IsEmbed() {
+				packageName := c.PackageName(field.Type().Embed()).String()
+				fieldTypeName := c.FullyQualifiedName(field.Type().Embed()).String()
+
+				if !strings.HasPrefix(fieldTypeName, c.PackageName(f).String()) {
+					imports = append(imports, packageName + "." + c.BuilderName(field.Type().Embed()).String())
+				}
+			}
+		}
+	}
+
+	return uniqueStrings(imports)
+}
+
 func (c context) SimpleName(node pgs.Node) pgs.Name {
 	switch en := node.(type) {
 	case pgs.Message:

@@ -52,6 +52,8 @@ func (p *TemplateGenPlugin) InitContext(c pgs.BuildContext) {
 	funcs["readerMethod"] = p.ctx.ReaderMethod
 	funcs["isBytes"] = p.ctx.IsBytes
 	funcs["imports"] = p.ctx.Imports
+	funcs["builderImports"] = p.ctx.BuilderImports
+	funcs["packageImports"] = p.ctx.PackageImports
 	funcs["default"] = p.ctx.DefaultValue
 	funcs["include"] = func(name string, data interface{}) (string, error) {
 		buf := bytes.NewBuffer(nil)

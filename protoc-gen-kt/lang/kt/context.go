@@ -41,6 +41,10 @@ type Context interface {
 	ElType(fte pgs.FieldTypeElem) TypeName
 
 	Imports(pgs.File) []string
+	
+	BuilderImports(pgs.File) []string
+	
+	PackageImports(pgs.File) []string
 
 	BuilderName(node pgs.Node) pgs.Name
 

@@ -66,8 +66,9 @@ class {{ name . }}ServiceRpc(rpc: RpcClient): {{ name . }}Service, GrpcService(r
 `
 const decoderTpl = `package {{ package . }}
 {{ range imports . }}
-import {{ . }}
-import {{ stripLastSegment . }}.readFrom{{ end }}
+import {{ . }}{{ end }}
+{{ range packageImports . }}
+import {{ . }}.readFrom{{ end }}
 import gg.roll.common.proto.tools.ProtobufReader
 import gg.roll.common.proto.tools.ProtobufInputStream
 import kotlin.js.JsName
@@ -132,8 +133,9 @@ fun {{ fullyQualifiedName . }}.Companion.readFrom(reader: ProtobufReader): {{ fu
 
 const encoderTpl = `package {{ package . }}
 {{ range imports . }}
-import {{ . }}
-import {{ stripLastSegment . }}.writeTo{{ end }}
+import {{ . }}{{ end }}
+{{ range packageImports . }}
+import {{ . }}.writeTo{{ end }}
 import gg.roll.common.proto.tools.ProtobufWriter
 import gg.roll.common.proto.tools.ProtobufOutputStream
 import kotlin.js.JsName
@@ -264,8 +266,11 @@ data class {{ simpleName . }}(
 
 const builderTpl = `package {{ package . }}
 {{ range imports . }}
-import {{ . }}
-import {{ . }}Builder{{ end }}
+import {{ . }}{{ end }}
+{{ range packageImports . }}
+import {{ . }}.*{{ end }}
+{{ range builderImports . }}
+import {{ . }}{{ end }}
 {{- define "message" }}
 
 fun {{ fullyQualifiedCompanionName . }}(builder: {{ builderName . }}.() -> Unit): {{ name . }} {
@@ -318,7 +323,7 @@ class {{ builderName . }} {
             get() = (builderCopy.{{ .OneOf.Descriptor.Name }} as? {{ name .OneOf.Message }}.OneOf{{ upperCamel .OneOf.Descriptor.Name }}.{{ name . }})?.value
             {{ if .Type.IsEmbed }}
             fun {{ name . }}(builder: {{ .Type.Embed | builderName }}.() -> Unit) {
-                builderCopy.{{ .OneOf.Descriptor.Name }} = {{ .Type.Embed | builderName }}().apply(builder).build().let { {{ name .OneOf.Message }}.OneOf{{ upperCamel .OneOf.Descriptor.Name }}.{{ name . }}(it) }
+                builderCopy.{{ .OneOf.Descriptor.Name }} = (builderCopy.{{ .OneOf.Descriptor.Name }} ?: {{ .Type.Embed | builderName }}().build()).copy(builder).let { {{ name .OneOf.Message }}.OneOf{{ upperCamel .OneOf.Descriptor.Name }}.{{ name . }}(it) }
             }{{ end }}
         {{ end }}
     }
@@ -336,7 +341,7 @@ class {{ builderName . }} {
         get() = builderCopy.{{ name . }}
     {{ if .Type.IsEmbed }}
     fun {{ name . }}(builder: {{ builderName .Type.Embed }}.() -> Unit) {
-        builderCopy.{{ name . }} = {{ builderName .Type.Embed }}().apply(builder).build()
+        builderCopy.{{ name . }} = (builderCopy.{{ name . }} ?: {{ builderName .Type.Embed }}().build()).copy(builder)
     }{{ else if .Type.IsMap }}
     
     inner class {{ name . }}MapBuilder {
