@@ -323,7 +323,7 @@ class {{ builderName . }} {
             get() = (builderCopy.{{ .OneOf.Descriptor.Name }} as? {{ name .OneOf.Message }}.OneOf{{ upperCamel .OneOf.Descriptor.Name }}.{{ name . }})?.value
             {{ if .Type.IsEmbed }}
             fun {{ name . }}(builder: {{ .Type.Embed | builderName }}.() -> Unit) {
-                builderCopy.{{ .OneOf.Descriptor.Name }} = (builderCopy.{{ .OneOf.Descriptor.Name }} ?: {{ .Type.Embed | builderName }}().build()).copy(builder).let { {{ name .OneOf.Message }}.OneOf{{ upperCamel .OneOf.Descriptor.Name }}.{{ name . }}(it) }
+                builderCopy.{{ .OneOf.Descriptor.Name }} = builderCopy.{{ .OneOf.Descriptor.Name }} ?: ({{ .Type.Embed | builderName }}().build()).copy(builder).let { {{ name .OneOf.Message }}.OneOf{{ upperCamel .OneOf.Descriptor.Name }}.{{ name . }}(it) }
             }{{ end }}
         {{ end }}
     }
