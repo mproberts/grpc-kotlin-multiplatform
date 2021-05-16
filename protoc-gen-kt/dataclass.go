@@ -14,6 +14,11 @@ import (
 	"github.com/golang/protobuf/protoc-gen-go/generator"
 )
 
+var excludes = map[string]bool{
+    "io.envoyproxy.pgv.validate": true,
+    "com.google.protobuf": true,
+}
+
 type TemplateGenPlugin struct {
 	*pgs.ModuleBase
 	templateString string
@@ -83,6 +88,10 @@ func (p *TemplateGenPlugin) generate(f pgs.File) {
 	if len(f.Messages()) == 0 {
 		return
 	}
+
+	if _, ok := excludes[f.Descriptor().GetOptions().GetJavaPackage()]; ok {
+        return
+    }
 
 	name := p.ctx.OutputPath(f).SetExt(p.ext)
 
