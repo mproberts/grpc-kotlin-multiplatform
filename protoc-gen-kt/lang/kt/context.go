@@ -48,6 +48,8 @@ type Context interface {
 
 	BuilderName(node pgs.Node) pgs.Name
 
+	SimpleBuilderName(node pgs.Node) pgs.Name
+
 	StripLastSegment(something string) string
 
 	IsBytes(field pgs.Field) bool

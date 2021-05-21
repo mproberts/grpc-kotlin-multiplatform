@@ -38,6 +38,7 @@ func (p *TemplateGenPlugin) InitContext(c pgs.BuildContext) {
 	funcs := sprig.TxtFuncMap()
 
 	funcs["builderName"] = p.ctx.BuilderName
+	funcs["simpleBuilderName"] = p.ctx.SimpleBuilderName
 	funcs["stripLastSegment"] = p.ctx.StripLastSegment
 	funcs["simpleName"] = p.ctx.SimpleName
 	funcs["originalName"] = p.ctx.OriginalName

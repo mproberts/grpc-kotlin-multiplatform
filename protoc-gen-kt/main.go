@@ -73,7 +73,7 @@ import gg.roll.common.proto.tools.ProtobufReader
 import gg.roll.common.proto.tools.ProtobufInputStream
 import kotlin.js.JsName
 {{- define "message" }}
-fun {{ fullyQualifiedName . }}.Companion.fromByteArray(bytes: ByteArray): {{ fullyQualifiedName . }} = ProtobufInputStream()
+inline fun {{ fullyQualifiedName . }}.Companion.fromByteArray(bytes: ByteArray): {{ fullyQualifiedName . }} = ProtobufInputStream()
     .let { stream ->
         stream.addBytes(bytes)
         stream.read {
@@ -81,7 +81,7 @@ fun {{ fullyQualifiedName . }}.Companion.fromByteArray(bytes: ByteArray): {{ ful
         }
     }
 
-fun {{ fullyQualifiedName . }}.Companion.readFrom(reader: ProtobufReader): {{ fullyQualifiedName . }} = {{ builderName . }}().apply {
+inline fun {{ fullyQualifiedName . }}.Companion.readFrom(reader: ProtobufReader): {{ fullyQualifiedName . }} = {{ builderName . }}().apply {
     while (reader.nextField()) {
         when (reader.currentFieldNumber) {
         {{ range .OneOfs }}
@@ -112,7 +112,9 @@ fun {{ fullyQualifiedName . }}.Companion.readFrom(reader: ProtobufReader): {{ fu
             }
             {{ else if .Type.IsMap }}
             {{ else if .Type.IsRepeated }}{{ .Descriptor.Number }} -> { {{ name . }} = {{ name . }} + reader.readField { fieldReader ->
+                    {{- if .Type.Element.IsEmbed }}
                     {{ name .Type.Element.Embed }}.readFrom(fieldReader)
+                    {{ end -}}
                 }
             }
             {{ else if .Type.IsEnum }}{{ .Descriptor.Number }} -> {
@@ -141,7 +143,7 @@ import gg.roll.common.proto.tools.ProtobufOutputStream
 import kotlin.js.JsName
 {{- define "message" }}
 @JsName("{{ escapedFullyQualifiedName . }}ToByteArray")
-fun {{ fullyQualifiedName . }}.toByteArray() = ProtobufOutputStream()
+inline fun {{ fullyQualifiedName . }}.toByteArray() = ProtobufOutputStream()
     .apply {
         write {
             this@toByteArray.writeTo(it)
@@ -150,7 +152,7 @@ fun {{ fullyQualifiedName . }}.toByteArray() = ProtobufOutputStream()
     .toByteArray()
 
 @JsName("{{ escapedFullyQualifiedName . }}WriteTo")
-fun {{ fullyQualifiedName . }}.writeTo(writer: ProtobufWriter) {
+inline fun {{ fullyQualifiedName . }}.writeTo(writer: ProtobufWriter) {
     {{ range .OneOfs }}
     when ({{ .Descriptor.Name }}) {
         {{- range .Fields }}
@@ -273,15 +275,15 @@ import {{ . }}.*{{ end }}
 import {{ . }}{{ end }}
 {{- define "message" }}
 
-fun {{ fullyQualifiedCompanionName . }}(builder: {{ builderName . }}.() -> Unit): {{ name . }} {
+inline fun {{ fullyQualifiedCompanionName . }}(builder: {{ builderName . }}.() -> Unit): {{ name . }} {
     return {{ builderName . }}().apply(builder).build()
 }
 
-fun {{ fullyQualifiedName . }}.copy(builder: {{ builderName . }}.() -> Unit): {{ name . }} {
+inline fun {{ fullyQualifiedName . }}.copy(builder: {{ builderName . }}.() -> Unit): {{ name . }} {
     return {{ builderName . }}(this).apply(builder).build()
 }
 
-class {{ builderName . }} {
+class {{ simpleBuilderName . }} {
     constructor()
 
     constructor(copy: {{ name . }}) {
@@ -345,24 +347,28 @@ class {{ builderName . }} {
     }{{ else if .Type.IsMap }}
     
     inner class {{ name . }}MapBuilder {
+
+        {{- if .Type.Element.IsEmbed }}
         infix fun {{ elTypeName .Type.Key }}.to(value: {{ name .Type.Element.Embed }}) {
             builderCopy.{{ name . }} = builderCopy.{{ name . }} + Pair(this, value)
         }
+        {{ end -}}
 
         fun {{ .Type.Element.Embed.Name.LowerCamelCase.String }}(key: {{ elTypeName .Type.Key }}, builder: {{ builderName .Type.Element.Embed }}.() -> Unit) {
             key to {{ builderName .Type.Element.Embed }}().apply(builder).build()
         }
     }
 
-    fun {{ name . }}(builder: {{ name . }}MapBuilder.() -> Unit) {
+    inline fun {{ name . }}(builder: {{ name . }}MapBuilder.() -> Unit) {
         {{ name . }}MapBuilder().apply(builder)
     }{{ else if .Type.IsRepeated }}
     
     inner class {{ name . }}ListBuilder {
+        {{- if .Type.Element.IsEmbed }}
         fun add(value: {{ name .Type.Element.Embed }}) {
             builderCopy.{{ name . }} = builderCopy.{{ name . }} + value
         }
-        {{ if .Type.Element.IsEmbed }}
+
         fun add{{ simpleName .Type.Element.Embed }}(builder: {{ builderName .Type.Element.Embed }}.() -> Unit) {
             add({{ builderName .Type.Element.Embed }}().apply(builder).build())
         }{{ end }}

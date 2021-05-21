@@ -68,6 +68,37 @@ func (c context) PackageImports(f pgs.File) []string {
 	for _, msg := range f.AllMessages() {
 		for _, field := range msg.Fields() {
 			if field.Type().IsEmbed() {
+				fieldTypeName := c.FullyQualifiedName(field.Type().Embed()).String()
+
+				if !strings.HasPrefix(fieldTypeName, c.PackageName(f).String()) {
+					imports = append(imports, c.PackageName(field.Type().Embed()).String())
+				}
+			} else if field.Type().IsMap() {
+				fieldTypeName := c.qualifiedElType(field.Type()).String()
+
+				if !strings.HasPrefix(fieldTypeName, c.PackageName(f).String()) {
+					imports = append(imports, c.StripLastSegment(c.qualifiedElType(field.Type()).String()))
+				}
+			} else if field.Type().IsRepeated() {
+				fieldTypeName := c.qualifiedElType(field.Type()).String()
+
+				if !strings.HasPrefix(fieldTypeName, c.PackageName(f).String()) {
+					imports = append(imports, c.StripLastSegment(c.qualifiedElType(field.Type()).String()))
+				}
+			} else if field.Type().IsEnum() {
+			}
+		}
+	}
+
+	return uniqueStrings(imports)
+}
+/*
+func (c context) PackageImports(f pgs.File) []string {
+	var imports []string	
+
+	for _, msg := range f.AllMessages() {
+		for _, field := range msg.Fields() {
+			if field.Type().IsEmbed() {
 				packageName := c.PackageName(field.Type().Embed()).String()
 				fieldTypeName := c.FullyQualifiedName(field.Type().Embed()).String()
 
@@ -81,7 +112,7 @@ func (c context) PackageImports(f pgs.File) []string {
 
 	return uniqueStrings(imports)
 }
-
+*/
 func (c context) BuilderImports(f pgs.File) []string {
 	var imports []string	
 
@@ -92,7 +123,7 @@ func (c context) BuilderImports(f pgs.File) []string {
 				fieldTypeName := c.FullyQualifiedName(field.Type().Embed()).String()
 
 				if !strings.HasPrefix(fieldTypeName, c.PackageName(f).String()) {
-					imports = append(imports, packageName + "." + c.BuilderName(field.Type().Embed()).String())
+					imports = append(imports, packageName + "." + c.SimpleBuilderName(field.Type().Embed()).String())
 				}
 			}
 		}
@@ -104,9 +135,9 @@ func (c context) BuilderImports(f pgs.File) []string {
 func (c context) SimpleName(node pgs.Node) pgs.Name {
 	switch en := node.(type) {
 	case pgs.Message:
-		return PGGUpperCamelCase(en.Name())
+		return replaceProtected(PGGUpperCamelCase(en.Name()))
 	case pgs.Enum:
-		return PGGUpperCamelCase(en.Name())
+		return replaceProtected(PGGUpperCamelCase(en.Name()))
 	default:
 		panic("unknown type")
 	}
@@ -143,6 +174,15 @@ func (c context) StripLastSegment(something string) string {
 }
 
 func (c context) BuilderName(node pgs.Node) pgs.Name {
+	switch node.(type) {
+	case pgs.Message:
+		return c.PackageName(node) + "." + pgs.Name(strings.ReplaceAll(c.Name(node).String(), ".", "_") + "Builder")
+	default:
+		panic("unknown type")
+	}
+}
+
+func (c context) SimpleBuilderName(node pgs.Node) pgs.Name {
 	return pgs.Name(strings.ReplaceAll(c.Name(node).String(), ".", "_") + "Builder")
 }
 
@@ -246,7 +286,7 @@ func (c context) Name(node pgs.Node) pgs.Name {
 		if p, ok := en.Parent().(pgs.Message); ok {
 			return pgs.Name(joinChild(c.Name(p), en.Name()))
 		}
-		return PGGUpperCamelCase(en.Name())
+		return replaceProtected(PGGUpperCamelCase(en.Name()))
 	case pgs.Field: // field names cannot conflict with other generated methods
 		return replaceProtected(PGGLowerCamelCase(en.Name()))
 	case pgs.OneOf: // oneof field names cannot conflict with other generated methods
@@ -257,11 +297,11 @@ func (c context) Name(node pgs.Node) pgs.Name {
 		// }
 		// return pgs.Name(joinNames(c.Name(en.Enum().Parent()), en.Name()))
 
-		return pgs.Name(strings.ToUpper(en.Name().String()))
+		return replaceProtected(pgs.Name(strings.ToUpper(en.Name().String())))
 	case pgs.Service: // always return the server name
-		return PGGUpperCamelCase(en.Name())
+		return replaceProtected(PGGUpperCamelCase(en.Name()))
 	case pgs.Entity: // any other entity should be just upper-camel-cased
-		return PGGLowerCamelCase(en.Name())
+		return replaceProtected(PGGLowerCamelCase(en.Name()))
 	default:
 		panic("unreachable")
 	}
@@ -458,6 +498,7 @@ var protectedNames = map[pgs.Name]pgs.Name{
 	"var": "var_",
 	"when": "when_",
 	"while": "while_",
+	"Any": "PbAny",
 }
 
 func replaceProtected(n pgs.Name) pgs.Name {
