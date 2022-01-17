@@ -81,7 +81,7 @@ inline fun {{ fullyQualifiedName . }}.Companion.fromByteArray(bytes: ByteArray):
         }
     }
 
-inline fun {{ fullyQualifiedName . }}.Companion.readFrom(reader: ProtobufReader): {{ fullyQualifiedName . }} = {{ builderName . }}().apply {
+fun {{ fullyQualifiedName . }}.Companion.readFrom(reader: ProtobufReader): {{ fullyQualifiedName . }} = {{ builderName . }}().apply {
     while (reader.nextField()) {
         when (reader.currentFieldNumber) {
         {{ range .OneOfs }}
@@ -152,7 +152,7 @@ inline fun {{ fullyQualifiedName . }}.toByteArray() = ProtobufOutputStream()
     .toByteArray()
 
 @JsName("{{ escapedFullyQualifiedName . }}WriteTo")
-inline fun {{ fullyQualifiedName . }}.writeTo(writer: ProtobufWriter) {
+fun {{ fullyQualifiedName . }}.writeTo(writer: ProtobufWriter) {
     {{ range .OneOfs }}
     when ({{ .Descriptor.Name }}) {
         {{- range .Fields }}
