@@ -126,6 +126,7 @@ fun {{ fullyQualifiedName . }}.Companion.readFrom(reader: ProtobufReader): {{ fu
             {{ else }}{{ .Descriptor.Number }} -> { {{ name . }} = reader.{{ readerMethod .Type.ProtoType }}() }
             {{ end }}
         {{- end }}
+            else -> {}
         }
     }
 }.build()
@@ -162,6 +163,7 @@ fun {{ fullyQualifiedName . }}.writeTo(writer: ProtobufWriter) {
         is {{ name .Message }}.OneOf{{ upperCamel .OneOf.Descriptor.Name }}.{{ name . }} -> writer.encode({{ .Descriptor.Number }}, ({{ .OneOf.Descriptor.Name }} as {{ name .Message }}.OneOf{{ upperCamel .OneOf.Descriptor.Name }}.{{ name . }}).value)
         {{- end }}
         {{ end }}
+        else -> {}
     }
     {{ end }}
     {{- range $index, $_ := .NonOneOfFields }}
