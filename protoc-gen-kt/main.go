@@ -256,8 +256,10 @@ data class {{ simpleName . }}(
         {{- range $index, $_ := .NonOneOfFields }}
         {{ if isBytes . -}}
         result = 31 * result + {{ name . }}.contentHashCode()
-        {{ else -}}
+        {{ else if .Type.IsEmbed . -}}
         result = 31 * result + ({{ name . }}?.hashCode() ?: 0)
+        {{ else -}}
+        result = 31 * result + ({{ name . }}.hashCode() ?: 0)
         {{ end }}{{ end }}
 
         result = 31 * result + (unknownFields?.contentHashCode() ?: 0)
