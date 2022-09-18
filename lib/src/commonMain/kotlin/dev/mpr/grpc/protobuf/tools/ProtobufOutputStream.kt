@@ -47,6 +47,28 @@ interface ProtobufWriter {
 
     fun encode(fieldNumber: Int, builder: ProtobufWriter.() -> Unit)
 
+    fun encode(value: ByteArray)
+
+    fun encode(value: String)
+
+    fun encode(value: Boolean)
+
+    fun encode(value: Int, signed: Boolean = false)
+
+    fun encode(value: Float)
+
+    fun encode(value: Long, signed: Boolean = false)
+
+    fun encode(value: UInt)
+
+    fun encode(value: ULong)
+
+    fun encode(value: Double)
+
+    fun <T : Enum<T>> encode(value: T)
+
+    fun encode(builder: ProtobufWriter.() -> Unit)
+
     fun write(bytes: ByteArray)
 }
 
@@ -71,22 +93,68 @@ open class ScopedProtobufWriter(private val output: MutableLinkedByteArray) : Pr
     override fun encode(fieldNumber: Int, value: ByteArray) {
         writeRawVarInt32(fieldTag(fieldNumber, ProtoConstants.WireType.lengthDelimited))
 
-        writeRawVarInt32(value.size)
-        writeBytes(value)
+        encode(value)
     }
 
     override fun encode(fieldNumber: Int, value: String) {
         writeRawVarInt32(fieldTag(fieldNumber, ProtoConstants.WireType.lengthDelimited))
-        writeBytes(SerializationTools.writeString(value))
+        encode(value)
     }
 
     override fun encode(fieldNumber: Int, value: Boolean) {
         writeRawVarInt32(fieldTag(fieldNumber, ProtoConstants.WireType.varInt))
-        writeRawVarInt32(if (value) 1 else 0)
+        encode(value)
     }
 
     override fun encode(fieldNumber: Int, value: Int, signed: Boolean) {
         writeRawVarInt32(fieldTag(fieldNumber, ProtoConstants.WireType.varInt))
+        encode(value, signed)
+    }
+
+    override fun encode(fieldNumber: Int, value: Float) {
+        writeRawVarInt32(fieldTag(fieldNumber, ProtoConstants.WireType.fixed32))
+        encode(value)
+    }
+
+    override fun encode(fieldNumber: Int, value: Long, signed: Boolean) {
+        writeRawVarInt32(fieldTag(fieldNumber, ProtoConstants.WireType.varInt))
+        encode(value, signed)
+    }
+
+    override fun encode(fieldNumber: Int, value: UInt) {
+        writeRawVarInt32(fieldTag(fieldNumber, ProtoConstants.WireType.varInt))
+        encode(value)
+    }
+
+    override fun encode(fieldNumber: Int, value: ULong) {
+        writeRawVarInt32(fieldTag(fieldNumber, ProtoConstants.WireType.varInt))
+        encode(value)
+    }
+
+    override fun encode(fieldNumber: Int, value: Double) {
+        writeRawVarInt32(fieldTag(fieldNumber, ProtoConstants.WireType.fixed64))
+        encode(value)
+    }
+
+    override fun <T : Enum<T>> encode(fieldNumber: Int, value: T) {
+        writeRawVarInt32(fieldTag(fieldNumber, ProtoConstants.WireType.varInt))
+        encode(value)
+    }
+
+    override fun encode(value: ByteArray) {
+        writeRawVarInt32(value.size)
+        writeBytes(value)
+    }
+
+    override fun encode(value: String) {
+        writeBytes(SerializationTools.writeString(value))
+    }
+
+    override fun encode(value: Boolean) {
+        writeRawVarInt32(if (value) 1 else 0)
+    }
+
+    override fun encode(value: Int, signed: Boolean) {
         writeRawVarInt32(if (signed) {
             (value shl 1) xor (value shr 31)
         } else {
@@ -94,14 +162,11 @@ open class ScopedProtobufWriter(private val output: MutableLinkedByteArray) : Pr
         })
     }
 
-    override fun encode(fieldNumber: Int, value: Float) {
-        writeRawVarInt32(fieldTag(fieldNumber, ProtoConstants.WireType.fixed32))
+    override fun encode(value: Float) {
         writeRawInt32(value.toRawBits())
     }
 
-    override fun encode(fieldNumber: Int, value: Long, signed: Boolean) {
-        writeRawVarInt32(fieldTag(fieldNumber, ProtoConstants.WireType.varInt))
-
+    override fun encode(value: Long, signed: Boolean) {
         writeRawVarInt64(if (signed) {
             (value shl 1) xor (value shr 63)
         } else {
@@ -109,25 +174,25 @@ open class ScopedProtobufWriter(private val output: MutableLinkedByteArray) : Pr
         })
     }
 
-    override fun encode(fieldNumber: Int, value: UInt) {
-        writeRawVarInt32(fieldTag(fieldNumber, ProtoConstants.WireType.varInt))
+    override fun encode(value: UInt) {
         writeRawVarInt32(value.toInt())
     }
 
-    override fun encode(fieldNumber: Int, value: ULong) {
-        writeRawVarInt32(fieldTag(fieldNumber, ProtoConstants.WireType.varInt))
+    override fun encode(value: ULong) {
         writeRawVarInt64(value.toLong())
     }
 
-    override fun encode(fieldNumber: Int, value: Double) {
-        writeRawVarInt32(fieldTag(fieldNumber, ProtoConstants.WireType.fixed64))
+    override fun encode(value: Double) {
         writeRawInt64(value.toRawBits())
     }
 
-    override fun <T : Enum<T>> encode(fieldNumber: Int, value: T) {
-        writeRawVarInt32(fieldTag(fieldNumber, ProtoConstants.WireType.varInt))
+    override fun <T : Enum<T>> encode(value: T) {
         writeRawVarInt32(value.ordinal)
     }
+
+
+
+
 
     private fun writeRawInt32(value: Int) {
         var pendingWrite = value

@@ -1,19 +1,19 @@
 package main
 
 import (
-    pgs "github.com/lyft/protoc-gen-star"
-    )
+	pgs "github.com/lyft/protoc-gen-star"
+)
 
-    func main() {
-    pgs.Init(
-        pgs.DebugEnv("DEBUG"),
-    ).RegisterModule(
-        RenderTemplate(encoderTpl, ".encode.kt"),
-        RenderTemplate(decoderTpl, ".decode.kt"),
-        RenderTemplate(dataClassTpl, ".data.kt"),
-        RenderTemplate(builderTpl, ".builder.kt"),
-        RenderTemplate(serviceTpl, ".service.kt"),
-    ).Render()
+func main() {
+	pgs.Init(
+		pgs.DebugEnv("DEBUG"),
+	).RegisterModule(
+		RenderTemplate(encoderTpl, ".encode.kt"),
+		RenderTemplate(decoderTpl, ".decode.kt"),
+		RenderTemplate(dataClassTpl, ".data.kt"),
+		RenderTemplate(builderTpl, ".builder.kt"),
+		RenderTemplate(serviceTpl, ".service.kt"),
+	).Render()
 }
 
 const serviceTpl = `package {{ package . }}
@@ -111,11 +111,15 @@ fun {{ fullyQualifiedName . }}.Companion.readFrom(reader: ProtobufReader): {{ fu
                 }
             }
             {{ else if .Type.IsMap }}
-            {{ else if .Type.IsRepeated }}{{ .Descriptor.Number }} -> { {{ name . }} = {{ name . }} + reader.readField { fieldReader ->
-                    {{- if .Type.Element.IsEmbed }}
+            {{ else if .Type.IsRepeated }}{{ .Descriptor.Number }} -> { {{- if .Type.Element.IsEmbed }}{{ name . }} = {{ name . }} + reader.readField { fieldReader ->
                     {{ name .Type.Element.Embed }}.readFrom(fieldReader)
-                    {{ end -}}
+                }{{- else }}
+				reader.readField { fieldReader ->
+                    while (fieldReader.isByteAvailable()) {
+                        {{ name . }} = {{ name . }} + fieldReader.readInt32()
+                    }
                 }
+				{{ end }}
             }
             {{ else if .Type.IsEnum }}{{ .Descriptor.Number }} -> {
                 val enumValue = reader.readInt32()
@@ -175,11 +179,19 @@ fun {{ fullyQualifiedName . }}.writeTo(writer: ProtobufWriter) {
     }
     {{ else if .Type.IsMap }}
     {{ else if .Type.IsRepeated }}
+	{{ if .Type.Element.IsEmbed }}
     {{ name . }}.forEach { value ->
         writer.encode({{ .Descriptor.Number }}) {
             value.writeTo(this)
         }
     }
+	{{ else }}
+    writer.encode({{ .Descriptor.Number }}) {
+        {{ name . }}.forEach { value ->
+            this.encode(value)
+        }
+    }
+    {{ end }}
     {{ else if .Type.IsEnum }}
     if ({{ name . }} != {{ default . }}) writer.encode({{ .Descriptor.Number }}, {{ name . }}.ordinal){{ else if isBytes . }}
     if ({{ name . }}.isNotEmpty()) writer.encode({{ .Descriptor.Number }}, {{ name . }}){{ else }}
@@ -256,7 +268,7 @@ data class {{ simpleName . }}(
         {{- range $index, $_ := .NonOneOfFields }}
         {{ if isBytes . -}}
         result = 31 * result + {{ name . }}.contentHashCode()
-        {{ else if .Type.IsEmbed . -}}
+        {{ else if .Type.IsEmbed -}}
         result = 31 * result + ({{ name . }}?.hashCode() ?: 0)
         {{ else -}}
         result = 31 * result + ({{ name . }}.hashCode() ?: 0)

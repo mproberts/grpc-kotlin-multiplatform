@@ -57,6 +57,10 @@ internal class ScopedProtobufReader(
         return tempBuffer[0]
     }
 
+    fun isByteAvailable(): Boolean {
+        return input.size > 0
+    }
+
     override fun nextField(): Boolean {
         if (input.size == 0) {
             return false
