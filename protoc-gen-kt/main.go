@@ -116,7 +116,7 @@ fun {{ fullyQualifiedName . }}.Companion.readFrom(reader: ProtobufReader): {{ fu
                 }{{- else }}
 				reader.readField { fieldReader ->
                     while (fieldReader.isByteAvailable()) {
-                        {{ name . }} = {{ name . }} + fieldReader.readInt32()
+                        {{ name . }} = {{ name . }} + fieldReader.{{ readerMethod .Type.ProtoType }}()
                     }
                 }
 				{{ end }}
@@ -188,7 +188,7 @@ fun {{ fullyQualifiedName . }}.writeTo(writer: ProtobufWriter) {
 	{{ else }}
     writer.encode({{ .Descriptor.Number }}) {
         {{ name . }}.forEach { value ->
-            this.encode(value)
+            this.encodeRaw(value)
         }
     }
     {{ end }}
