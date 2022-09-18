@@ -2,8 +2,8 @@ package pgskt
 
 import (
 	"fmt"
-	"unicode"
 	"strings"
+	"unicode"
 	"unicode/utf8"
 
 	"github.com/golang/protobuf/protoc-gen-go/generator"
@@ -32,7 +32,7 @@ func uniqueStrings(list []string) []string {
 }
 
 func (c context) Imports(f pgs.File) []string {
-	var imports []string	
+	var imports []string
 
 	for _, msg := range f.AllMessages() {
 		for _, field := range msg.Fields() {
@@ -49,10 +49,12 @@ func (c context) Imports(f pgs.File) []string {
 					imports = append(imports, fieldTypeName)
 				}
 			} else if field.Type().IsRepeated() {
-				fieldTypeName := c.qualifiedElType(field.Type()).String()
+				if field.Type().Element().IsEmbed() {
+					fieldTypeName := c.qualifiedElType(field.Type()).String()
 
-				if !strings.HasPrefix(fieldTypeName, c.PackageName(f).String()) {
-					imports = append(imports, fieldTypeName)
+					if !strings.HasPrefix(fieldTypeName, c.PackageName(f).String()) {
+						imports = append(imports, fieldTypeName)
+					}
 				}
 			} else if field.Type().IsEnum() {
 			}
@@ -63,7 +65,7 @@ func (c context) Imports(f pgs.File) []string {
 }
 
 func (c context) PackageImports(f pgs.File) []string {
-	var imports []string	
+	var imports []string
 
 	for _, msg := range f.AllMessages() {
 		for _, field := range msg.Fields() {
@@ -80,10 +82,12 @@ func (c context) PackageImports(f pgs.File) []string {
 					imports = append(imports, c.StripLastSegment(c.qualifiedElType(field.Type()).String()))
 				}
 			} else if field.Type().IsRepeated() {
-				fieldTypeName := c.qualifiedElType(field.Type()).String()
+				if field.Type().Element().IsEmbed() {
+					fieldTypeName := c.qualifiedElType(field.Type()).String()
 
-				if !strings.HasPrefix(fieldTypeName, c.PackageName(f).String()) {
-					imports = append(imports, c.StripLastSegment(c.qualifiedElType(field.Type()).String()))
+					if !strings.HasPrefix(fieldTypeName, c.PackageName(f).String()) {
+						imports = append(imports, c.StripLastSegment(c.qualifiedElType(field.Type()).String()))
+					}
 				}
 			} else if field.Type().IsEnum() {
 			}
@@ -92,9 +96,10 @@ func (c context) PackageImports(f pgs.File) []string {
 
 	return uniqueStrings(imports)
 }
+
 /*
 func (c context) PackageImports(f pgs.File) []string {
-	var imports []string	
+	var imports []string
 
 	for _, msg := range f.AllMessages() {
 		for _, field := range msg.Fields() {
@@ -114,7 +119,7 @@ func (c context) PackageImports(f pgs.File) []string {
 }
 */
 func (c context) BuilderImports(f pgs.File) []string {
-	var imports []string	
+	var imports []string
 
 	for _, msg := range f.AllMessages() {
 		for _, field := range msg.Fields() {
@@ -123,7 +128,7 @@ func (c context) BuilderImports(f pgs.File) []string {
 				fieldTypeName := c.FullyQualifiedName(field.Type().Embed()).String()
 
 				if !strings.HasPrefix(fieldTypeName, c.PackageName(f).String()) {
-					imports = append(imports, packageName + "." + c.SimpleBuilderName(field.Type().Embed()).String())
+					imports = append(imports, packageName+"."+c.SimpleBuilderName(field.Type().Embed()).String())
 				}
 			}
 		}
@@ -160,7 +165,7 @@ func (c context) StripLastSegment(something string) string {
 	remainder := ""
 
 	components := strings.Split(something, ".")
-	components = components[:len(components) - 1]
+	components = components[:len(components)-1]
 
 	for _, component := range components {
 		if len(remainder) > 0 {
@@ -176,7 +181,7 @@ func (c context) StripLastSegment(something string) string {
 func (c context) BuilderName(node pgs.Node) pgs.Name {
 	switch node.(type) {
 	case pgs.Message:
-		return c.PackageName(node) + "." + pgs.Name(strings.ReplaceAll(c.Name(node).String(), ".", "_") + "Builder")
+		return c.PackageName(node) + "." + pgs.Name(strings.ReplaceAll(c.Name(node).String(), ".", "_")+"Builder")
 	default:
 		panic("unknown type")
 	}
@@ -293,7 +298,7 @@ func (c context) Name(node pgs.Node) pgs.Name {
 		return replaceProtected(PGGLowerCamelCase(en.Name()))
 	case pgs.EnumValue: // EnumValue are prefixed with the enum name
 		// if _, ok := en.Enum().Parent().(pgs.File); ok {
-			// return pgs.Name(joinNames(c.Name(en.Enum()), en.Name()))
+		// return pgs.Name(joinNames(c.Name(en.Enum()), en.Name()))
 		// }
 		// return pgs.Name(joinNames(c.Name(en.Enum().Parent()), en.Name()))
 
@@ -307,7 +312,7 @@ func (c context) Name(node pgs.Node) pgs.Name {
 	}
 }
 
-func (c context) IsBytes( field pgs.Field) bool {
+func (c context) IsBytes(field pgs.Field) bool {
 	ft := field.Type()
 	switch {
 	case ft.IsMap():
@@ -327,7 +332,7 @@ func (c context) IsBytes( field pgs.Field) bool {
 			return false
 		}
 	}
-	
+
 	panic("unreachable: invalid scalar type")
 }
 
@@ -366,7 +371,7 @@ func (c context) DefaultValue(field pgs.Field) string {
 			return "ByteArray(0)"
 		}
 	}
-	
+
 	panic("unreachable: invalid scalar type")
 }
 
@@ -403,7 +408,7 @@ func (c context) ReaderMethod(t pgs.ProtoType) string {
 	case pgs.BytesT:
 		return "readBytes"
 	}
-	
+
 	panic("unreachable: invalid scalar type")
 }
 
@@ -465,40 +470,40 @@ func PGGUpperCamelCase(n pgs.Name) pgs.Name {
 // See: https://godoc.org/github.com/golang/protobuf/protoc-gen-go/generator#CamelCase
 func PGGLowerCamelCase(n pgs.Name) pgs.Name {
 	camelCase := generator.CamelCase(n.String())
-	
+
 	return pgs.Name(strings.ToLower(camelCase[0:1]) + camelCase[1:])
 }
 
 var protectedNames = map[pgs.Name]pgs.Name{
-	"as": "as_",
-	"break": "break_",
-	"class": "class_",
-	"continue": "continue_",
-	"do": "do_",
-	"else": "else_",
-	"false": "false_",
-	"for": "for_",
-	"fun": "fun_",
-	"if": "if_",
-	"in": "in_",
+	"as":        "as_",
+	"break":     "break_",
+	"class":     "class_",
+	"continue":  "continue_",
+	"do":        "do_",
+	"else":      "else_",
+	"false":     "false_",
+	"for":       "for_",
+	"fun":       "fun_",
+	"if":        "if_",
+	"in":        "in_",
 	"interface": "interface_",
-	"is": "is_",
-	"null": "null_",
-	"object": "object_",
-	"package": "package_",
-	"return": "return_",
-	"super": "super_",
-	"this": "this_",
-	"throw": "throw_",
-	"true": "true_",
-	"try": "try_",
+	"is":        "is_",
+	"null":      "null_",
+	"object":    "object_",
+	"package":   "package_",
+	"return":    "return_",
+	"super":     "super_",
+	"this":      "this_",
+	"throw":     "throw_",
+	"true":      "true_",
+	"try":       "try_",
 	"typealias": "typealias_",
-	"typeof": "typeof_",
-	"val": "val_",
-	"var": "var_",
-	"when": "when_",
-	"while": "while_",
-	"Any": "PbAny",
+	"typeof":    "typeof_",
+	"val":       "val_",
+	"var":       "var_",
+	"when":      "when_",
+	"while":     "while_",
+	"Any":       "PbAny",
 }
 
 func replaceProtected(n pgs.Name) pgs.Name {
